@@ -1,0 +1,7 @@
+streamlit
+folium
+streamlit-folium
+llama-index
+llama-index-llms-openrouter
+requests
+python-dotenv
