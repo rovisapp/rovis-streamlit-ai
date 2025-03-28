@@ -1,0 +1,77 @@
+[
+  {
+    "CategoryId": "100",
+    "CategoryType": "Eat and Drink",
+    "Description": "Eat and Drink"
+  },
+  {
+    "CategoryId": "100-1000-0000",
+    "CategoryType": "Restaurant",
+    "Description": "An establishment that prepares and serves refreshments and prepared meals. This is a base-level category that should be used for all places that do not fit other categories defined for Restaurant (100-1000-xxxx)."
+  },
+  {
+    "CategoryId": "100-1000-0001",
+    "CategoryType": "Casual Dining",
+    "Description": "A restaurant serving moderately-priced food in a casual atmosphere that usually includes table service."
+  },
+  {
+    "CategoryId": "100-1000-0002",
+    "CategoryType": "Fine Dining",
+    "Description": "A full-service restaurant that serves full-course meals in a formal setting. These places usually have high quality décor, highly-trained chefs, wait staff and visually appealing food. Prices are typically higher than other types of restaurants."
+  },
+  {
+    "CategoryId": "100-1000-0003",
+    "CategoryType": "Take Out and Delivery Only",
+    "Description": "A restaurant that offers take-out service, delivery service, or both."
+  },
+  {
+    "CategoryId": "100-1000-0004",
+    "CategoryType": "Food Market-Stall",
+    "Description": "A restaurant that serves specialty foods at a food court, marketplace or outdoor setting including hawker centers (common in Southeast Asia)."
+  },
+  {
+    "CategoryId": "100-1000-0005",
+    "CategoryType": "Taqueria",
+    "Description": "A street vendor stand or small restaurant that serves traditional Mexican food, such as tacos or burritos."
+  },
+  {
+    "CategoryId": "100-1000-0006",
+    "CategoryType": "Deli",
+    "Description": "A restaurant that sells ready-to-serve delicatessens including cold cut meats, cheeses and salads. This type of restaurant can be found as a stand-alone establishment or within a grocery store."
+  },
+  {
+    "CategoryId": "100-1000-0007",
+    "CategoryType": "Cafeteria",
+    "Description": "A restaurant that provides food service with little or no wait staff. This type of establishment is common in schools, large office buildings, hospitals and other public establishments."
+  },
+  {
+    "CategoryId": "100-1000-0008",
+    "CategoryType": "Bistro",
+    "Description": "A restaurant that serves moderately priced meals in a European-styled casual setting."
+  },
+  {
+    "CategoryId": "100-1000-0009",
+    "CategoryType": "Fast Food",
+    "Description": "A restaurant offering food that is prepared and served quickly."
+  },
+  {
+    "CategoryId": "100-1000-0050",
+    "CategoryType": "Family Restaurant",
+    "Description": "A family-friendly restaurant chain location which provides casual food. The menu includes a wide variety of Japanese, Western, and Chinese dishes. Note: This category is a Japan-only category."
+  },
+  {
+    "CategoryId": "100-1100-0000",
+    "CategoryType": "Coffee-Tea",
+    "Description": "An establishment that sells drinks, such as coffee and tea, as well as refreshments. This is a base-level category that should be used for all places that do not fit other categories defined for Coffee-Tea (100-1100-xxxx)."
+  },
+  {
+    "CategoryId": "100-1100-0010",
+    "CategoryType": "Coffee Shop",
+    "Description": "An establishment that primarily sells coffee, but may also serve light foods, such as pastries or other snacks."
+  },
+  {
+    "CategoryId": "100-1100-0331",
+    "CategoryType": "Tea House",
+    "Description": "An establishment that sells tea and other related products."
+  }
+]

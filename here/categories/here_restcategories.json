@@ -1,0 +1,82 @@
+[
+  {
+    "CategoryId": "400-4300",
+    "CategoryType": "Rest - Area",
+    "Description": "Rest - Area"
+  },
+  {
+    "CategoryId": "550",
+    "CategoryType": "Leisure and Outdoor",
+    "Description": "Leisure and Outdoor"
+  },
+  {
+    "CategoryId": "800-8500",
+    "CategoryType": "Parking",
+    "Description": "Parking"
+  },
+  {
+    "CategoryId": "800-8300",
+    "CategoryType": "Library",
+    "Description": "Library"
+  },
+  {
+    "CategoryId": "700-7600",
+    "CategoryType": "Fueling Station",
+    "Description": "Fueling Station"
+  },
+  {
+    "CategoryId": "600-6000",
+    "CategoryType": "Convenience Store",
+    "Description": "Convenience Store"
+  },
+  {
+    "CategoryId": "600-6100",
+    "CategoryType": "Mall-Shopping Complex",
+    "Description": "Mall-Shopping Complex"
+  },
+  {
+    "CategoryId": "600-6200",
+    "CategoryType": "Department Store",
+    "Description": "Department Store"
+  },
+  {
+    "CategoryId": "600-6300-0066",
+    "CategoryType": "Grocery",
+    "Description": "Grocery"
+  },
+  {
+    "CategoryId": "600-6400",
+    "CategoryType": "Drugstore or Pharmacy",
+    "Description": "Drugstore or Pharmacy"
+  },
+  {
+    "CategoryId": "600-6600",
+    "CategoryType": "Hardware, House and Garden",
+    "Description": "Hardware, House and Garden"
+  },
+  {
+    "CategoryId": "600-6900-0247",
+    "CategoryType": "Market",
+    "Description": "Market"
+  },
+  {
+    "CategoryId": "700-7460",
+    "CategoryType": "Tourist Information",
+    "Description": "Tourist Information"
+  },
+  {
+    "CategoryId": "700-7850",
+    "CategoryType": "Car Repair-Service",
+    "Description": "Car Repair-Service"
+  },
+  {
+    "CategoryId": "700-7900",
+    "CategoryType": "Truck-Semi Dealer-Services",
+    "Description": "Truck-Semi Dealer-Services"
+  },
+  {
+    "CategoryId": "900-9200",
+    "CategoryType": "Outdoor Area-Complex",
+    "Description": "Outdoor Area-Complex"
+  }
+]
