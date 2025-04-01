@@ -1,438 +1,337 @@
-from llama_index.llms.openrouter import OpenRouter
-from typing import List, Dict, Any, Optional, Tuple, Callable
-import re
-import datetime
-import json
+from llama_index.utils.workflow import draw_all_possible_flows
+from llama_index.core.workflow import Event
+from llama_index.core.workflow import (
+    Workflow,
+    Context,
+    StartEvent,
+    StopEvent,
+    step,
+)
 
-class TripPlannerAgent:
-    def __init__(
-        self, 
-        api_key: str,
-        geocode_fn: Callable,
-        route_fn: Callable,
-        search_places_fn: Callable,
-        model_name: str = "google/gemma-3-27b-it"
-    ):
-        print("\n=== Agent Initialization Debug Log ===")
-        print(f"Initializing agent with model: {model_name}")
-        
-        # Create system prompt first
-        system_prompt = self._create_system_prompt()
-        print("System prompt created")
-        
-        # Initialize LLM with system prompt in context
+from llama_index.core.llms import LLM
+from llama_index.llms.openrouter import OpenRouter
+from llama_index.core.llms import ChatMessage
+from llama_index.core.agent.workflow import AgentOutput
+from typing import Dict, Any, Optional, Tuple, List
+import json
+from datetime import datetime
+import os
+from prompt_data import  PROMPT_EXTRACT_ROUTE_INFO, PROMPT_EXTRACT_SEARCH_PLACES_INFO
+from state_manager import StateManager
+from load_env import load_environment
+from api_wrappers import TomTomAPI, HereAPI
+
+# Load environment variables
+env_vars = load_environment()
+TOMTOM_API_KEY = env_vars["TOMTOM_API_KEY"]
+HERE_API_KEY = env_vars["HERE_API_KEY"]
+
+# Initialize API clients
+# def get_api_clients():
+#     tomtom_api = TomTomAPI(TOMTOM_API_KEY)
+#     here_api = HereAPI(HERE_API_KEY)
+#     return tomtom_api, here_api
+# 
+# tomtom_api, here_api = get_api_clients()
+
+# Event classes for each step
+class IntentEvent(Event):
+    """Event for intent determination."""
+    message: str
+    result: str
+
+class OffTopicEvent(Event):
+    """Event for off-topic conversation handling."""
+    message: str
+    
+class SearchPlacesExamineEvent(Event):
+    """Event for search places information extraction."""
+    location: Optional[Dict[str, float]]
+    place_type: Optional[str]
+    message: str
+
+class SearchPlacesInfoEvent(Event):
+    """Event for search places information extraction."""
+    location: Optional[Dict[str, float]]
+    place_type: Optional[str]
+    message: str
+
+class SearchPlacesCallEvent(Event):
+    """Event for search places API call."""
+    location: Dict[str, float]
+    place_type: str
+    message: str
+
+class RouteInfoEvent(Event):
+    """Event for route information extraction."""
+    route_info: Dict[str, Any]
+    message: str
+
+class RouteExamineEvent(Event):
+    """Event for route information extraction."""
+    route_info: Dict[str, Any]
+    message: str
+
+class RouteCallEvent(Event):
+    """Event for route calculation."""
+    route_info: Dict[str, Any]
+    message: str
+
+class TripPlannerAgent(Workflow):
+    """Trip planner workflow implementation."""
+
+    def __init__(self, api_key: str, model_name: str = "google/gemma-3-27b-it"):
+        super().__init__(verbose=True)
         self.llm = OpenRouter(
             api_key=api_key,
             model=model_name,
-            context_window=32768,  # Ensure large enough context window
-            system_prompt=system_prompt,  # Add system prompt to LLM configuration
-            max_tokens=2048,  # Increase max tokens for response
-            temperature=0.7,  # Add temperature for more consistent responses
-            top_p=0.9,  # Add top_p for better response quality
-            frequency_penalty=0.0,  # Add frequency penalty to reduce repetition
-            presence_penalty=0.0  # Add presence penalty to encourage new content
+            max_tokens=2048,
+            temperature=0.7,
+            top_p=0.9,
+            frequency_penalty=0.0,
+            presence_penalty=0.0
         )
-        print("OpenRouter LLM initialized with system prompt")
+        StateManager.init_session_state()
+        draw_all_possible_flows(self, filename="workflowviz.html")
+
+    async def search_places_fn(self, location: Tuple[float, float], radius: int = 8047, type: str = "") -> Dict[str, Any]:
+        """Mock function to simulate search_places API call"""
+        print(f"\n=== Mock search_places_fn called ===")
+        print(f"Location: {location}")
+        print(f"Radius: {radius} meters")
+        print(f"Type: {type}")
+        print("=== End mock search_places_fn ===\n")
         
-        # Store tool functions
-        self.geocode_fn = geocode_fn
-        self.route_fn = route_fn
-        self.search_places_fn = search_places_fn
-        print("Tools stored")
+        # Real API call would be:
+        # result = await here_api.search_places(location, radius, type)
         
-        self.required_info = {
-            'start_location': None,
-            'destinations': None,
-            'time_constraints': None,
-            'driving_hours_per_day': None,
-            'walking_time': None
-        }
-        print("Required info initialized")
-        print("=== End Agent Initialization Debug Log ===\n")
-    
-    def _get_json_examples(self) -> str:
-        """Get the JSON examples for the system prompt"""
-        return '''
-        Example of correct response when information is missing:
-        {
-            "thought": "User wants to travel from Dover to Hartford. Missing time constraints and driving hours. Cannot proceed with geocoding until all information is gathered.",
-            "missing_info": ["time_constraints", "driving_hours_per_day"],
-            "action": "none",
-            "action_input": null,
-            "response": "I see you want to travel from Dover to Hartford. Before I can help plan your route, I need:\\n\\n- What are your time constraints (start date and end date)?\\n- How many hours can you drive per day?"
-        }
+        # Read and return the mock location response
+        try:
+            with open('api-mock/location-response.json', 'r') as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"Error reading location-response.json: {e}")
+            return {"items": []}
 
-        INCORRECT - DO NOT DO THIS when information is missing:
-        {
-            "thought": "User wants to travel from Dover to Hartford. Missing time constraints and driving hours.",
-            "missing_info": ["time_constraints", "driving_hours_per_day"],
-            "action": "geocode_location",
-            "action_input": {"location": "Dover, Delaware"},
-            "response": "Let me verify the location first."
-        }
+    async def calculate_route_fn(self, start: Tuple[float, float], end: Tuple[float, float], waypoints: List[Tuple[float, float]], depart_at: str = None) -> Dict[str, Any]:
+        """Mock function to simulate calculate_route API call"""
+        print(f"\n=== Mock calculate_route_fn called ===")
+        print(f"Start location: {start}")
+        print(f"End location: {end}")
+        print(f"Waypoints: {waypoints}")
+        print(f"Departure time: {depart_at}")
+        print("=== End mock calculate_route_fn ===\n")
+        
+        # Real API call would be:
+        # result = await tomtom_api.calculate_route(start, end, waypoints, depart_at)
+        
+        # Read and return the mock route response
+        try:
+            with open('api-mock/route-response.json', 'r') as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"Error reading route-response.json: {e}")
+            return {"routes": []}
 
-        INCORRECT - DO NOT DO THIS when information is missing:
-        {
-            "thought": "User wants to travel from Dover to Hartford. I'll geocode first and then ask for missing information.",
-            "missing_info": ["time_constraints", "driving_hours_per_day"],
-            "action": "geocode_location",
-            "action_input": {"start": "Dover Delaware", "end": "Hartford CT"},
-            "response": "Okay, I can help with that! First, let me geocode the locations. Then, to plan the best route for you, I need a little more information..."
-        }
-
-        INCORRECT - DO NOT DO THIS (Invalid JSON format):
-        {
-            "thought": "User wants to travel from Dover to Hartford",
-            "missing_info": ["time_constraints"],
-            "action": "none",
-            "action_input": null,
-            "response": "Please provide your time constraints"
-        }
-        '''
-
-    def _create_system_prompt(self) -> str:
-        """Create a system prompt for the LLM to handle the trip planning task"""
-        current_date = datetime.datetime.now().strftime("%Y-%m-%d")
-        return f"""
-        You are Rovis Streamlit AI, a helpful assistant for planning road trips. Your goal is to help users plan a route between multiple locations based on their preferences and constraints.
-
-        Before using any tools, you MUST gather ALL of the following information:
-        1. Start location (address, city, landmark)
-        2. Destinations they want to visit
-        3. Time constraints (when they're starting, when they need to be back)
-        4. How many hours they can drive per day
-        5. How many minutes or hours they can walk per day
-
-        When analyzing user messages, follow these rules:
-        1. First, check what information you have and what's missing
-        2. If ANY information is missing:
-           - You MUST set action to "none"
-           - You MUST set action_input to null
-           - You MUST NOT use any tools (geocode_location, calculate_route, etc.)
-           - You MUST ask the user for the missing information
-           - You MUST NOT attempt to geocode locations until ALL information is gathered
-        3. Only proceed with tools when you have ALL required information
-        4. If the user mentions a departure time or date:
-           - Extract it from their message
-           - Store it in state as 'departure_time' in format "YYYY-MM-DDTHH:MM:SS"
-           - If only date is provided, default to 09:00:00
-           - If only time is provided, use current date
-           - If neither is provided, use next day at 09:00:00
-
-        CRITICAL RULES:
-        1. Your response MUST be a valid JSON object with EXACTLY these fields:
-           {{
-               "thought": "Your analysis of the message and what information is missing",
-               "missing_info": ["List of missing information items"],
-               "action": "The action to take (geocode_location, calculate_route, search_places, or none)",
-               "action_input": {{"key": "value"}} or null,
-               "response": "Your response to the user"
-           }}
-           - Use double quotes for all strings
-           - Do not include any markdown formatting
-           - Do not include any text before or after the JSON object
-           - Do not include any comments or explanations
-           - The response must be a complete, valid JSON object
-           - Close all brackets and braces properly
-           - Do not include any code block markers (```)
-           - Do not include any language identifiers (json)
-
-        2. If ANY information is missing:
-           - action MUST be "none"
-           - action_input MUST be null
-           - response MUST ask for the missing information
-           - DO NOT attempt to geocode locations
-           - DO NOT attempt to calculate routes
-
-        3. NEVER use any tools (geocode_location, calculate_route, etc.) when information is missing
-
-        4. Only proceed with tools after ALL required information is gathered
-
-        5. Geocoding locations is the LAST step before route calculation, not the first step
-
-        {self._get_json_examples()}
-
-        Current date: {current_date}
-        """
-    
-    def chat(self, message: str, user_state: Dict[str, Any]) -> Tuple[str, Dict[str, Any]]:
-        """Process user message and return agent response with updated state"""
-        print("\n=== Chat Debug Log ===")
-        print(f"User message: {message}")
-        print(f"Current state: {user_state}")
+    async def async_chat(self, message: Dict[str, str]) -> str:
+        """Process user message and return agent response"""
+        print(f"\nUser message: {message}")
         
         try:
-            print("\n=== LLM Response Start ===")
-            print("Calling LLM...")
+            # Create context with functions
+            ctx = Context(self)
+            await ctx.set("search_places_fn", self.search_places_fn)
+            await ctx.set("calculate_route_fn", self.calculate_route_fn)
+            self.verbose = True
+            # Run workflow with streaming
+            handler = self.run(message=message['content'], ctx=ctx)
             
-            # Create a more concise prompt
-            prompt = f"""Current state:
-- Start: {user_state.get('start_location', 'Not provided')}
-- Destinations: {user_state.get('destinations', 'Not provided')}
-- Time: {user_state.get('time_constraints', 'Not provided')}
-- Drive hours/day: {user_state.get('driving_hours_per_day', 'Not provided')}
-- Walk time: {user_state.get('walking_time', 'Not provided')}
-- Geocoded start: {user_state.get('geocoded_start_location', 'Not geocoded')}
-- Geocoded end: {user_state.get('geocoded_end_location', 'Not geocoded')}
-- Geocoded supporting points: {user_state.get('geocoded_supporting_points', [])}
-
-            User message: {message}
-
-            CRITICAL RULES:
-            1. Your response MUST be a valid JSON object with EXACTLY these fields:
-               {{
-                   "thought": "Your analysis of the message and what information is missing",
-                   "missing_info": ["List of missing information items"],
-                   "action": "The action to take (geocode_location, calculate_route, search_places, or none)",
-                   "action_input": {{"key": "value"}} or null,
-                   "response": "Your response to the user"
-               }}
-               - Use double quotes for all strings
-               - Do not include any markdown formatting
-               - Do not include any text before or after the JSON object
-               - Do not include any comments or explanations
-               - The response must be a complete, valid JSON object
-               - Close all brackets and braces properly
-               - Do not include any code block markers (```)
-               - Do not include any language identifiers (json)
-
-            2. If ANY information is missing:
-               - action MUST be "none"
-               - action_input MUST be null
-               - response MUST ask for the missing information
-               - DO NOT attempt to geocode locations
-               - DO NOT attempt to calculate routes
-
-            3. NEVER use any tools (geocode_location, calculate_route, etc.) when information is missing
-
-            4. Only proceed with tools after ALL required information is gathered
-
-            5. Geocoding locations is the LAST step before route calculation, not the first step
-
-            Example of correct response when information is missing:
-            {{
-                "thought": "User wants to travel from Dover to Hartford. Missing time constraints and driving hours. Cannot proceed with geocoding until all information is gathered.",
-                "missing_info": ["time_constraints", "driving_hours_per_day"],
-                "action": "none",
-                "action_input": null,
-                "response": "I see you want to travel from Dover to Hartford. Before I can help plan your route, I need:\\n\\n- What are your time constraints (start date and end date)?\\n- How many hours can you drive per day?"
-            }}
-
-            INCORRECT - DO NOT DO THIS (Invalid JSON format):
-            {{
-                "thought": "User wants to travel from Dover to Hartford",
-                "missing_info": ["time_constraints"],
-                "action": "none",
-                "action_input": null,
-                "response": "Please provide your time constraints"
-            }}
-            """
+            # Process streaming events
+            async for event in handler.stream_events():
+                if isinstance(event, AgentOutput):
+                    print("Agent output: ", event.response)
+                    print("Tool calls made: ", event.tool_calls)
+                    print("Raw LLM response: ", event.raw)
             
-            # Get LLM response
-            response = self.llm.complete(prompt)
-            print("Complete LLM Response:")
-            print("-" * 50)
-            print(response.text)
-            print("-" * 50)
-            print("=== LLM Response End ===\n")
-            
-            # Clean up the response text to extract JSON
-            response_text = response.text.strip()
-            
-            # Remove markdown code block if present
-            if response_text.startswith("```"):
-                # Find the first and last code block markers
-                first_marker = response_text.find("```")
-                second_marker = response_text.find("```", first_marker + 3)
-                if second_marker != -1:
-                    # Extract content between markers, skipping the language identifier line if present
-                    content = response_text[first_marker + 3:second_marker].strip()
-                    if content.startswith("json"):
-                        content = content[4:].strip()
-                    response_text = content
-                else:
-                    # If no closing marker, just remove the opening one
-                    response_text = response_text[first_marker + 3:].strip()
-            
-            # Check for complete JSON structure
-            if not response_text.startswith("{") or not response_text.endswith("}"):
-                print(f"Error: LLMResponse is not a complete JSON object. Response text: {response_text}")
-                return "I apologize, but I encountered an error processing the response. Please try again.", user_state
-            
-            # Parse the JSON response
-            try:
-                parsed_response = json.loads(response_text)
-                print("\n=== Parsed LLM Response ===")
-                print(json.dumps(parsed_response, indent=2))
-                print("=== End Parsed Response ===\n")
-                
-                # Validate required fields
-                required_fields = ["thought", "missing_info", "action", "action_input", "response"]
-                missing_fields = [field for field in required_fields if field not in parsed_response]
-                if missing_fields:
-                    print(f"Error: Missing required fields in LLM response: {missing_fields}")
-                    return "I apologize, but I encountered an error processing the response. Please try again.", user_state
-                
-                # Create updated state copy early
-                updated_state = user_state.copy()
-                
-                # Extract locations from message if present
-                if "from" in message.lower() and "to" in message.lower():
-                    parts = message.lower().split("from")[1].split("to")
-                    if len(parts) == 2:
-                        start = parts[0].strip()
-                        end = parts[1].strip()
-                        updated_state['start_location'] = start
-                        updated_state['destinations'] = [end]
-                        print(f"Extracted locations - Start: {start}, End: {end}")
-                
-                # Extract information from thought
-                if parsed_response.get("thought"):
-                    thought = parsed_response["thought"]
-                    if ":" in thought:
-                        for line in thought.split("\n"):
-                            if ":" in line:
-                                key, value = line.split(":", 1)
-                                key = key.strip("- ").strip()
-                                value = value.strip()
-                                if value != "missing" and key in updated_state:
-                                    updated_state[key] = value
-                                    print(f"Extracted {key}: {value}")
-                
-                # Handle the action if specified
-                action = parsed_response.get("action")
-                action_input = parsed_response.get("action_input")
-                
-                if action and action_input:
-                    if action == "geocode_location":
-                        # Handle single location geocoding
-                        location = action_input.get("location")
-                        if not location:
-                            print("Error: No location provided for geocoding")
-                            return "I encountered an error processing the location. Please try again.", updated_state
-                        
-                        result = self.geocode_fn(location)
-                        print(f"Geocoding result for {location}: {result}")
-                        
-                        if result and isinstance(result, dict):
-                            coords = (result['lat'], result['lon'])
-                            print(f"Location coordinates: {coords}")
-                            
-                            # Store coordinates based on location type
-                            if location == updated_state.get('start_location'):
-                                updated_state['geocoded_start_location'] = coords
-                            elif location == updated_state.get('destinations', [None])[0]:
-                                updated_state['geocoded_end_location'] = coords
-                            else:
-                                if 'geocoded_supporting_points' not in updated_state:
-                                    updated_state['geocoded_supporting_points'] = []
-                                updated_state['geocoded_supporting_points'].append(coords)
-                            
-                    elif action == "calculate_route":
-                        try:
-                            # Get geocoded coordinates from state
-                            start_loc = updated_state.get('geocoded_start_location')
-                            end_loc = updated_state.get('geocoded_end_location')
-                            supporting_points = updated_state.get('geocoded_supporting_points', [])
-                            
-                            if not start_loc or not end_loc:
-                                print("Error: Missing geocoded coordinates for route calculation")
-                                return "I couldn't find the coordinates for the locations. Please try again.", updated_state
-                            
-                            # Get departure time from state or use default
-                            departure_time = updated_state.get('departure_time')
-                            if not departure_time:
-                                # Default to next day at 9 AM
-                                tomorrow = datetime.datetime.now() + datetime.timedelta(days=1)
-                                departure_time = tomorrow.replace(hour=9, minute=0, second=0, microsecond=0).strftime("%Y-%m-%dT%H:%M:%S")
-                                updated_state['departure_time'] = departure_time
-                                print(f"Using default departure time: {departure_time}")
-                            
-                            print(f"\nCalculating route with coordinates:")
-                            print(f"Start: {start_loc}")
-                            print(f"End: {end_loc}")
-                            print(f"Supporting points: {supporting_points}")
-                            print(f"Departure time: {departure_time}")
-                            
-                            result = self.route_fn(
-                                start_loc,
-                                end_loc,
-                                supporting_points,
-                                departure_time
-                            )
-                            print(f"Route calculation result: {result}")
-                            if result and isinstance(result, dict):
-                                print(f"Route details: {result.get('distance')} km, {result.get('duration')} minutes")
-                        except Exception as e:
-                            print(f"Error calculating route: {str(e)}")
-                            # Continue with the conversation even if route calculation fails
-                    elif action == "search_places":
-                        result = self.search_places_fn(
-                            action_input.get("location"),
-                            action_input.get("radius", 5000),
-                            action_input.get("categories", []),
-                            action_input.get("food_types", [])
-                        )
-                        print(f"Places search result: {result}")
-                
-                # Update state with driving hours if provided
-                if "drive" in message.lower() and "hour" in message.lower():
-                    # Extract number from message
-                    import re
-                    numbers = re.findall(r'\d+', message)
-                    if numbers:
-                        updated_state['driving_hours_per_day'] = int(numbers[0])
-                        print(f"Updated driving hours: {numbers[0]}")
-                
-                # Parse response for any actions that need to be taken
-                actions = self._parse_actions(parsed_response.get("response", ""))
-                print(f"Parsed actions: {actions}")
-                
-                # Update state based on actions
-                if actions['update_route']:
-                    updated_state['route_updated'] = True
-                if actions['show_places']:
-                    updated_state['showing_places'] = True
-                if actions['selected_place']:
-                    updated_state['selected_place'] = actions['selected_place']
-                
-                print(f"Final updated state: {updated_state}")
-                print(f"Final response to user: {parsed_response.get('response')}")
-                print("=== End Chat Debug Log ===\n")
-                
-                return parsed_response.get("response", ""), updated_state
-                
-            except json.JSONDecodeError as e:
-                print(f"Error parsing JSON response: {str(e)}")
-                print(f"Response text was: {response_text}")
-                return "I apologize, but I encountered an error processing the response. Please try again.", user_state
+            # Get final response
+            return str(await handler)
                 
         except Exception as e:
-            print(f"Error in chat: {str(e)}")
-            print("=== End Chat Debug Log ===\n")
-            return f"I apologize, but I encountered an error: {str(e)}. Please try again.", user_state
-    
-    def _parse_actions(self, response: str) -> Dict[str, Any]:
-        """Parse the agent response for actions that need to be taken"""
-        actions = {
-            'update_route': False,
-            'show_places': False,
-            'selected_place': None,
-            'clear_temp_places': False
-        }
+            print(f"Error in async_chat: {e}")
+            return "I apologize, but I encountered an error. Please try again."
+
+    @step
+    async def determine_intent(self, ctx: Context, ev: StartEvent) -> IntentEvent:
+        """Determine if the user's message is on-topic or off-topic."""
+        print(f"Determine intent ev: {ev}")
+        message = ev.message
+        prompt = f"""Categorize the intent of this message as either ONTOPIC or OFFTOPIC:
+        ONTOPIC: If the message contains information or intention about trip planning, travel itinerary, or general question about geographical locations
+        OFFTOPIC: For all other messages
         
-        # Check if response indicates showing points on a map
-        if re.search(r'(show|display|mark|places on( the)? map)', response, re.IGNORECASE):
-            actions['show_places'] = True
+        Message: {message}
         
-        # Check if response indicates updating the route
-        if re.search(r'(new route|updated route|see your route|calculate route)', response, re.IGNORECASE):
-            actions['update_route'] = True
+        IF you categorize it as 'OFFTOPIC',
+        Your response should be a complete response to the message . Dont include the word 'OFFTOPIC' in your response.
+        IF you categorize it as 'ONTOPIC',
+        You response should be a single word 'ONTOPIC' if you categorize it as 'ONTOPIC'.
+        """
         
-        # Check if response indicates a place selection
-        place_match = re.search(r'(selected|choosing|picked|chose) (Pin \d+|location|place)', response, re.IGNORECASE)
-        if place_match:
-            actions['selected_place'] = place_match.group(0)
-            actions['clear_temp_places'] = True
+        result = self.llm.complete(prompt)
+        print(f"Determine intent result: {result}")
+        return IntentEvent(message=message, result=str(result).strip())
+
+    @step
+    async def convo_offtopic(self, ctx: Context, ev: IntentEvent) -> SearchPlacesInfoEvent | StopEvent:
+        """Stop conversation if number of off-topic messages is too high. Otherwise, check if the user is asking to search for a place."""
+        print(f"Convo offtopic ev: {ev}")
+        if ev.result == "ONTOPIC":
+            await ctx.set("off_topic_count", 0 )  # reset off-topic count
+            return SearchPlacesInfoEvent(message=ev.message)
+            
+        # Get off-topic count from context
+        off_topic_count = await ctx.get("off_topic_count", 0) + 1
+        await ctx.set("off_topic_count", off_topic_count)
         
-        return actions
+        
+        if off_topic_count >= 8:
+            denymessage="I am sorry, I cannot continue in this offtopic conversation. Please ask about trip planning."
+        elif off_topic_count >= 5:
+            denymessage=ev.result + "\n\nThis conversation is going offtopic. Please ask about trip planning."
+        else:
+            denymessage=ev.result
+        print(f"Convo offtopic deny message: {denymessage}")
+        return StopEvent(result=denymessage)
+
+    @step
+    async def extract_search_places_info(self, ctx: Context, ev: SearchPlacesInfoEvent) -> SearchPlacesExamineEvent | RouteInfoEvent | StopEvent:
+        """If the user is asking to search for a place, pass the message to the search places API call step.
+        Otherwise, pass the message to the route information extraction step."""
+        print(f"Extract search places info ev: {ev}")
+        message = ev.message
+        prompt = f"The user has posted the following message:\nMessage: {message}\n\n{PROMPT_EXTRACT_SEARCH_PLACES_INFO}\n\n"
+        
+        
+        result = self.llm.complete(prompt)
+        try:
+            info = json.loads(str(result))
+            if info:
+                if info["location"] and info["place_type"]:
+                    return SearchPlacesExamineEvent(**info, message=message)
+                else:
+                    return RouteInfoEvent(message=ev.message)
+            else:
+                return RouteInfoEvent(message=ev.message)
+        except:
+            print(f"Error in extract_search_places_info: {result}")
+            return StopEvent(result="There was an error in extract_search_places_info. Please try again.")
+
+    @step
+    async def examine_search_places_call(self, ctx: Context, ev: SearchPlacesExamineEvent) -> SearchPlacesCallEvent | StopEvent:
+        """Examine if search places API call can be made. if not, stop the conversation."""
+        print(f"Examine search places call ev: {ev}")
+        if not ev.location or not ev.place_type:
+            return StopEvent(result=str(ev.thought))
+            
+        valid_types = ["restaurant", "rest_area", "hotel"]
+        if ev.place_type not in valid_types:
+            return StopEvent(result=str(ev.thought))
+            
+        return SearchPlacesCallEvent(
+            location=ev.location,
+            place_type=ev.place_type,
+            message=ev.message
+        )
+
+    @step
+    async def call_search_places(self, ctx: Context, ev: SearchPlacesCallEvent) -> StopEvent:
+        
+        """Make the search places API call. Update the app state with the search results."""
+        print(f"Call search places ev: {ev}")
+        # Get the search_places function from context
+        search_places_fn = await ctx.get("search_places_fn")
+        
+        # Call the function
+        result = await search_places_fn(
+            location=(ev.location["lat"], ev.location["lon"]),
+            radius=8047,  # 5 miles
+            type=ev.place_type
+        )
+        
+        # Update app state with search results
+        StateManager.update_app_state("search", {
+            'location': ev.location,
+            'radius': 8047,
+            'type': ev.place_type,
+            'results': result
+        })
+        
+        return StopEvent(result=str(result))
+
+    @step
+    async def extract_route_info(self, ctx: Context, ev: RouteInfoEvent ) -> RouteExamineEvent | StopEvent:
+        
+        """Extract route request parameters from user message. Update the app state with the route information."""
+        print(f"Extract route info ev: {ev}")
+        message = ev.message
+        
+        prompt = f"The user has posted the following message:\nMessage: {message}\n\n{PROMPT_EXTRACT_ROUTE_INFO}\n\n"
+        
+        result = self.llm.complete(prompt)
+        try:
+            route_info = json.loads(str(result))
+
+            return RouteExamineEvent(route_info=route_info, message=message)
+        except:
+            print(f"Error in extract_route_info: {result}")
+            return StopEvent(result="There was an error in extract_route_info. Please try again.")
+
+    @step
+    async def examine_route_call(self, ctx: Context, ev: RouteExamineEvent) -> RouteCallEvent | StopEvent:
+        
+        """Examine if route calculation is feasible."""
+        print(f"Examine route call ev: {ev}")
+        route_info = ev.route_info
+        StateManager.update_chat_state(route_info)
+        # Check if all required coordinates and maxDrivingHoursPerDay are present
+        if not all([
+            "start" in route_info and "lat" in route_info["start"] and "lon" in route_info["start"],
+            "end" in route_info and "lat" in route_info["end"] and "lon" in route_info["end"],
+            "maxDrivingHoursPerDay" in route_info
+        ]):
+            
+            return StopEvent(result="I need more information to plan your route. Please provide start and end locations with coordinates, and maximum driving hours per day.")
+            
+        return RouteCallEvent(route_info=route_info, message=ev.message)
+
+    @step
+    async def call_route(self, ctx: Context, ev: RouteCallEvent) -> StopEvent:
+
+        """Calculate the route api call. Update the app state with the route results."""
+        print(f"Call route ev: {ev}")
+        # Get the calculate_route function from context
+        calculate_route_fn = await ctx.get("calculate_route_fn")
+        
+        # Extract coordinates
+        start_loc = (ev.route_info["start"]["lat"], ev.route_info["start"]["lon"])
+        end_loc = (ev.route_info["end"]["lat"], ev.route_info["end"]["lon"])
+        waypoints = [(wp["lat"], wp["lon"]) for wp in ev.route_info.get("waypoints", [])]
+        
+        # Call the function
+        result = await calculate_route_fn(
+            start_loc,
+            end_loc,
+            waypoints,
+            ev.route_info.get("departAt", datetime.now().isoformat())
+        )
+        
+        # Update app state with route results
+        StateManager.update_app_state("route", {
+            'start': ev.route_info.get('start'),
+            'end': ev.route_info.get('end'),
+            'waypoints': ev.route_info.get('waypoints'),
+            'results': result
+        })
+        
+        return StopEvent(result=str(result))
+        

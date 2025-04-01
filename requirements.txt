@@ -5,3 +5,5 @@ llama-index
 llama-index-llms-openrouter
 requests
 python-dotenv
+llama-index-core
+llama-index-utils-workflow

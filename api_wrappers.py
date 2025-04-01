@@ -62,6 +62,8 @@ class TomTomAPI:
             data["supportingPoints"] = [
                 {"latitude": lat, "longitude": lon} for lat, lon in supporting_points
             ]
+        else:
+            data["supportingPoints"] = {}
         
         print(f"\nRoute API call:")
         print(f"URL: {url}")

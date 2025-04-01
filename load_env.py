@@ -14,10 +14,10 @@ def load_environment():
     missing_keys = []
     if not openrouter_api_key:
         missing_keys.append("OPENROUTER_API_KEY")
-    if not tomtom_api_key:
-        missing_keys.append("TOMTOM_API_KEY")
-    if not here_api_key:
-        missing_keys.append("HERE_API_KEY")
+    # if not tomtom_api_key:
+    #     missing_keys.append("TOMTOM_API_KEY")
+    # if not here_api_key:
+    #     missing_keys.append("HERE_API_KEY")
     
     # Display warning if any keys are missing
     if missing_keys:
