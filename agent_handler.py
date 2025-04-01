@@ -81,7 +81,7 @@ class TripPlannerAgent(Workflow):
     """Trip planner workflow implementation."""
 
     def __init__(self, api_key: str, model_name: str = "google/gemma-3-27b-it"):
-        super().__init__(verbose=True)
+        super().__init__(verbose=True) # TODO: remove verbose=True after testing
         self.llm = OpenRouter(
             api_key=api_key,
             model=model_name,
@@ -92,7 +92,7 @@ class TripPlannerAgent(Workflow):
             presence_penalty=0.0
         )
         StateManager.init_session_state()
-        draw_all_possible_flows(self, filename="workflowviz.html")
+        draw_all_possible_flows(self, filename="workflowviz.html") # Use open workflowviz.html to visualize the workflow, remove after testing
 
     async def search_places_fn(self, location: Tuple[float, float], radius: int = 8047, type: str = "") -> Dict[str, Any]:
         """Mock function to simulate search_places API call"""
