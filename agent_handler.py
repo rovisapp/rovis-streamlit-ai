@@ -1,25 +1,20 @@
-from llama_index.utils.workflow import draw_all_possible_flows
-from llama_index.core.workflow import Event
-from llama_index.core.workflow import (
-    Workflow,
-    Context,
-    StartEvent,
-    StopEvent,
-    step,
-)
-
-from llama_index.core.llms import LLM
-from llama_index.llms.openrouter import OpenRouter
-from llama_index.core.llms import ChatMessage
-from llama_index.core.agent.workflow import AgentOutput
-from typing import Dict, Any, Optional, Tuple, List
 import json
-from datetime import datetime
 import os
-from prompt_data import  PROMPT_EXTRACT_ROUTE_INFO, PROMPT_EXTRACT_SEARCH_PLACES_INFO
-from state_manager import StateManager
+from datetime import datetime
+from typing import Any, Dict, List, Optional, Tuple
+
+from llama_index.core.agent.workflow import AgentOutput
+from llama_index.core.llms import LLM, ChatMessage
+from llama_index.core.workflow import (Context, Event, StartEvent, StopEvent,
+                                       Workflow, step)
+from llama_index.llms.openrouter import OpenRouter
+from llama_index.utils.workflow import draw_all_possible_flows
+
+from api_wrappers import HereAPI, TomTomAPI
 from load_env import load_environment
-from api_wrappers import TomTomAPI, HereAPI
+from prompt_data import (PROMPT_EXTRACT_ROUTE_INFO,
+                         PROMPT_EXTRACT_SEARCH_PLACES_INFO)
+from state_manager import StateManager
 
 # Load environment variables
 env_vars = load_environment()
@@ -94,6 +89,31 @@ class TripPlannerAgent(Workflow):
         StateManager.init_session_state()
         draw_all_possible_flows(self, filename="workflowviz.html") # Use open workflowviz.html to visualize the workflow, remove after testing
 
+    async def extract_location_and_place_type(self, message: str) -> Tuple[Optional[Dict[str, float]], Optional[str]]:
+        """
+        Extract location and place type from the user's message.
+        This is a placeholder implementation and should be replaced with actual logic.
+        """
+        # Example logic: This is a very basic example and should be replaced with actual extraction logic
+        # You might use regex, a language model, or some other method to extract this information
+        location = None
+        place_type = None
+
+        # Example: Check if the message contains certain keywords
+        if "restaurant" in message:
+            place_type = "restaurant"
+        elif "hotel" in message:
+            place_type = "hotel"
+        elif "rest area" in message:
+            place_type = "rest_area"
+
+        # Example: Dummy location extraction
+        # Replace this with actual logic to extract location coordinates
+        if "New York" in message:
+            location = {"lat": 40.7128, "lon": -74.0060}
+
+        return location, place_type
+    
     async def search_places_fn(self, location: Tuple[float, float], radius: int = 8047, type: str = "") -> Dict[str, Any]:
         """Mock function to simulate search_places API call"""
         print(f"\n=== Mock search_places_fn called ===")
@@ -186,20 +206,26 @@ class TripPlannerAgent(Workflow):
         """Stop conversation if number of off-topic messages is too high. Otherwise, check if the user is asking to search for a place."""
         print(f"Convo offtopic ev: {ev}")
         if ev.result == "ONTOPIC":
-            await ctx.set("off_topic_count", 0 )  # reset off-topic count
-            return SearchPlacesInfoEvent(message=ev.message)
-            
+            await ctx.set("off_topic_count", 0)  # reset off-topic count
+            # You need to extract location and place_type here before creating SearchPlacesInfoEvent
+            # For now, let's assume you have a function to extract these details
+            location, place_type = await self.extract_location_and_place_type(ev.message)
+            if location and place_type:
+                return SearchPlacesInfoEvent(location=location, place_type=place_type, message=ev.message)
+            else:
+                # If you can't extract location and place_type, handle it appropriately
+                return StopEvent(result="Could not determine location and place type from the message.")
+        
         # Get off-topic count from context
         off_topic_count = await ctx.get("off_topic_count", 0) + 1
         await ctx.set("off_topic_count", off_topic_count)
         
-        
         if off_topic_count >= 8:
-            denymessage="I am sorry, I cannot continue in this offtopic conversation. Please ask about trip planning."
+            denymessage = "I am sorry, I cannot continue in this offtopic conversation. Please ask about trip planning."
         elif off_topic_count >= 5:
-            denymessage=ev.result + "\n\nThis conversation is going offtopic. Please ask about trip planning."
+            denymessage = ev.result + "\n\nThis conversation is going offtopic. Please ask about trip planning."
         else:
-            denymessage=ev.result
+            denymessage = ev.result
         print(f"Convo offtopic deny message: {denymessage}")
         return StopEvent(result=denymessage)
 

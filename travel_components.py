@@ -1,7 +1,9 @@
-import streamlit as st
-from typing import Dict, Any, List, Tuple, Optional
 import datetime
+from typing import Any, Dict, List, Optional, Tuple
+
 import folium
+import streamlit as st
+
 
 def format_time_duration(seconds: int) -> str:
     """Format seconds into a readable time duration (e.g., 2h 30m)"""

@@ -1,5 +1,7 @@
+from typing import Any, Dict
+
 import streamlit as st
-from typing import Dict, Any
+
 
 class StateManager:
     @staticmethod

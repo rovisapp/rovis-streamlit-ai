@@ -1,10 +1,11 @@
 #source venv/bin/activate && streamlit run app.py
-import streamlit as st
-import os
-import datetime
-from typing import List, Dict, Any, Tuple, Optional
 import asyncio
+import datetime
+import os
+from typing import Any, Dict, List, Optional, Tuple
+
 import folium
+import streamlit as st
 from streamlit_folium import st_folium
 
 # Import custom modules
