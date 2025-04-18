@@ -213,12 +213,17 @@ class TripPlannerAgent(Workflow):
         
         if ev.result == "ONTOPIC":
             st.session_state["off_topic_count"] = 0  # reset off-topic count
-            # Proceed with extracting search places info or route info
-            search_places_event = await self.extract_search_places_info(ctx, ev)
+
+            # Wrap the message in a new SearchPlacesInfoEvent
+            info_event = SearchPlacesInfoEvent(message=ev.message, location=None, place_type=None)
+
+            # Pass that to extract_search_places_info
+            search_places_event = await self.extract_search_places_info(ctx, info_event)
             if isinstance(search_places_event, SearchPlacesInfoEvent):
                 return search_places_event
             else:
-                return StopEvent(result="Could not determine location and place type from the message.")
+                return search_places_event  # This could already be a StopEvent
+
         
         # Increment the off-topic count
         off_topic_count += 1
@@ -263,26 +268,62 @@ class TripPlannerAgent(Workflow):
 
     @step
     async def extract_search_places_info(self, ctx: Context, ev: SearchPlacesInfoEvent) -> SearchPlacesExamineEvent | RouteInfoEvent | StopEvent:
-        print(f"Extract search places info ev: {ev}")
-        message = ev.message
-        prompt = f"The user has posted the following message.\nMessage: {message}\n\n{PROMPT_EXTRACT_SEARCH_PLACES_INFO}\n\n"
+        try:
+            print(f"Extract search places info ev: {ev}")
+            message = ev.message
+            prompt = f"The user has posted the following message.\nMessage: {message}\n\n{PROMPT_EXTRACT_SEARCH_PLACES_INFO}\n\n"
 
-        result = self.llm.complete(prompt)
-        parsed = self.extract_json_from_text(str(result))
+            result = self.llm.complete(prompt)
+            parsed = self.extract_json_from_text(str(result))
 
-        if parsed is None:
-            print(f"Failed to extract JSON from result: {result}")
-            return StopEvent(result="Hmm, I couldn't understand the location from your message. Could you try rephrasing it?")
+            if parsed is None:
+                print(f"Failed to extract JSON from result: {result}")
+                return StopEvent(result="Sorry, I couldn't parse your message. Could you try rephrasing it?")
 
-        if "thought" in parsed:
-            print(f"LLM analysis thought: {parsed['thought']}")
-            return StopEvent(result="Got your intent, but I need more route details like start, end, or driving preferences to proceed.")
+            # If LLM returned a 'thought', it's either not a valid request or needs clarification
+            if "thought" in parsed:
+                print(f"LLM analysis thought: {parsed['thought']}")
 
+                # Optionally, log ambiguous input
+                StateManager.update_app_state("ambiguous", {
+                    "original": ev.message,
+                    "llm_thought": parsed["thought"]
+                })
 
-        if parsed.get("location") and parsed.get("place_type"):
-            return SearchPlacesExamineEvent(**parsed, message=message)
+                print(f"LLM analysis thought: {parsed['thought']}")
+                return StopEvent(
+                    result=f"Could you specify the city or area you're interested in, and whether you’re looking for restaurants, hotels, or rest stops?"
+                )
+            
+            if "location" in parsed and "place_type" in parsed:
+                return SearchPlacesExamineEvent(
+                    location=parsed["location"],
+                    place_type=parsed["place_type"],
+                    message=message
+                )
+            
+            # Validate essential fields
+            location = parsed.get("location", {})
+            place_type = parsed.get("place_type")
+            if not location or not place_type:
+                return StopEvent(result="I couldn’t find a clear location or place type. Can you provide a city and let me know if you're looking for restaurants, hotels, or rest stops?")
+
+            lat, lon = location.get("lat"), location.get("lon")
+            if lat is None or lon is None:
+                return StopEvent(result="The location data seems incomplete. Could you give a more specific place?")
+
+            # Save extracted data to app state
+            StateManager.update_app_state("place_search_info", {
+                "location": location,
+                "place_type": place_type
+            })
+            
+            return RouteInfoEvent(message=message)
         
-        return RouteInfoEvent(message=message)
+        except Exception as e:
+            print(f"Exception in extract_search_places_info: {e}")
+            return StopEvent(result="Oops, something went wrong while processing your request.")
+
 
     @step
     async def examine_search_places_call(self, ctx: Context, ev: SearchPlacesExamineEvent) -> SearchPlacesCallEvent | StopEvent:
@@ -391,5 +432,5 @@ class TripPlannerAgent(Workflow):
             'results': result
         })
         
-        return StopEvent(result="Your route has been displayed. If you need to make changes, please let me know.")
+        return StopEvent(result="Your route has been displayed. If you need to make changes, please let me know.")()
             
