@@ -24,6 +24,7 @@ OPENROUTER_API_KEY = env_vars["OPENROUTER_API_KEY"]
 if 'initialized' not in st.session_state:
     st.session_state.initialized = True
     st.session_state.messages = []
+    st.session_state.off_topic_count = 0  # Initialize off-topic count
     StateManager.init_session_state()
     # Add welcome message
     welcome_msg = (
