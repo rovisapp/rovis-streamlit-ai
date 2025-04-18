@@ -77,7 +77,7 @@ with col1:
         
         try:
             # Send message to agent
-            response = asyncio.run(agent.async_chat(message))
+            response = asyncio.run(agent.async_chat(message, st.session_state.messages))
             
             # Add assistant message to chat
             st.session_state.messages.append({"role": "assistant", "content": response})

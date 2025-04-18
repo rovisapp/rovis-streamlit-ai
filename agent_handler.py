@@ -155,7 +155,7 @@ class TripPlannerAgent(Workflow):
             print(f"Error reading route-response.json: {e}")
             return {"routes": []}
 
-    async def async_chat(self, message: Dict[str, str]) -> str:
+    async def async_chat(self, message: Dict[str, str], history) -> str:
         """Process user message and return agent response"""
         print(f"\nUser message: {message}")
         
@@ -166,7 +166,18 @@ class TripPlannerAgent(Workflow):
             await ctx.set("calculate_route_fn", self.calculate_route_fn)
             self.verbose = True
             # Run workflow with streaming
-            handler = self.run(message=message['content'], ctx=ctx)
+            # Copy history to avoid modifying original
+            trimmed_history = history.copy()
+
+            # Remove last item only if it's a user message
+            if trimmed_history and trimmed_history[-1].get("role") == "user":
+                trimmed_history = trimmed_history[:-1]
+
+            handler = self.run(
+                message='History convo: ' + str(trimmed_history) + '\n Current User Message: ' + message['content'],
+                ctx=ctx
+            )
+
             
             # Process streaming events
             async for event in handler.stream_events():
@@ -187,11 +198,11 @@ class TripPlannerAgent(Workflow):
         """Determine if the user's message is on-topic or off-topic."""
         print(f"Determine intent ev: {ev}")
         message = ev.message
-        prompt = f"""Categorize the intent of this message as either ONTOPIC or OFFTOPIC.
+        prompt = f"""Categorize the intent of only message as either ONTOPIC or OFFTOPIC.
         ONTOPIC: If the message contains information or intention about trip planning, travel itinerary, or general questions about geographical locations.
         OFFTOPIC: For all other messages.
 
-        Message: {message}
+        Current User Message: {message}
 
         IF you categorize it as 'OFFTOPIC',
         Your response should be a complete response to the message. Do not include the word 'OFFTOPIC' in your response. Provide a friendly and informative reply based on the content of the message.
@@ -230,7 +241,7 @@ class TripPlannerAgent(Workflow):
         st.session_state["off_topic_count"] = off_topic_count  # Update the session state with the new count
         print(f"Off-topic count: {off_topic_count}")
         
-        if off_topic_count >= 3:
+        if off_topic_count >= 3 and off_topic_count < 5:
             return StopEvent(result=ev.result + "\nWell, well, this is convo is going off topic, how about we stick to trip planning?")
         elif off_topic_count >= 5:
             return StopEvent(result="This is too much of off-topic conversations. Please ask about trip planning. As I won't be able to help you with off topics now until you ask me an ontopic question.")
@@ -271,7 +282,7 @@ class TripPlannerAgent(Workflow):
         try:
             print(f"Extract search places info ev: {ev}")
             message = ev.message
-            prompt = f"The user has posted the following message.\nMessage: {message}\n\n{PROMPT_EXTRACT_SEARCH_PLACES_INFO}\n\n"
+            prompt = f"\n\n {PROMPT_EXTRACT_SEARCH_PLACES_INFO}\n\n Here is the convo history till now: {st.session_state.messages}\n\n and The user has posted the following message.\n Current Message: {message}\n\n"
 
             result = self.llm.complete(prompt)
             parsed = self.extract_json_from_text(str(result))
@@ -373,7 +384,7 @@ class TripPlannerAgent(Workflow):
         print(f"Extract route info ev: {ev}")
         message = ev.message
         
-        prompt = f"The user has posted the following message.\nMessage: {message}\n\n{PROMPT_EXTRACT_ROUTE_INFO}\n\n"
+        prompt = f"\n\n{PROMPT_EXTRACT_ROUTE_INFO}\n\n Here is the convo history till now: {st.session_state.messages}\n\n and The user has posted the following message.\n Current Message: {message}\n\n"
         
         result = self.llm.complete(prompt)
         try:
