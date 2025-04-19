@@ -178,6 +178,7 @@ Respond with:
 }
 ```
 
+STEP 5: DO include a thought if the response is not a place search request.
 
 EXAMPLES:
 

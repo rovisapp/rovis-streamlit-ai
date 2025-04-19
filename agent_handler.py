@@ -198,8 +198,8 @@ class TripPlannerAgent(Workflow):
         """Determine if the user's message is on-topic or off-topic."""
         print(f"Determine intent ev: {ev}")
         message = ev.message
-        prompt = f"""Categorize the intent of only message as either ONTOPIC or OFFTOPIC.
-        ONTOPIC: If the message contains information or intention about trip planning, travel itinerary, or general questions about geographical locations.
+        prompt = f"""Categorize the intent of the User's current message as either ONTOPIC or OFFTOPIC.
+        ONTOPIC: If the message contains information or intention about trip planning, travel itinerary, restaurants, hotels, rest areas, route planning or general questions about geographical locations.
         OFFTOPIC: For all other messages.
 
         Current User Message: {message}
@@ -302,9 +302,10 @@ class TripPlannerAgent(Workflow):
                 })
 
                 print(f"LLM analysis thought: {parsed['thought']}")
-                return StopEvent(
-                    result=f"Could you specify the city or area you're interested in, and whether you’re looking for restaurants, hotels, or rest stops?"
-                )
+                # return StopEvent(
+                #     result=f"Could you specify the city or area you're interested in, and whether you’re looking for restaurants, hotels, or rest stops?"
+                # )
+                return RouteInfoEvent(route_info=parsed, message=message)
             
             if "location" in parsed and "place_type" in parsed:
                 return SearchPlacesExamineEvent(
