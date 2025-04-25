@@ -91,6 +91,20 @@ class TripPlannerAgent(Workflow):
         StateManager.init_session_state()
         draw_all_possible_flows(self, filename="workflowviz.html") # Use open workflowviz.html to visualize the workflow, remove after testing
 
+    async def generate_stop_message(self, ctx: Context, ev: Event) -> str:
+        """Generates a dynamic stop message using the OpenAI API."""
+        history = st.session_state.messages.copy()
+        trimmed_history = history[:-1] if history and history[-1].get("role") == "user" else history
+
+        prompt = f"""You are a helpful travel assistant.  The user's conversation history is: {trimmed_history}.
+        The user's last message was: {ev.message if hasattr(ev, 'message') else 'Unknown'}.
+        Based on this conversation, generate a concise and helpful message explaining why the conversation is stopping.  
+        The message should be friendly and offer potential next steps or clarify what information is missing. Keep the message under 100 words.
+        """
+
+        result = self.llm.complete(prompt)
+        return str(result).strip()
+
     async def extract_location_and_place_type(self, message: str) -> Tuple[Optional[Dict[str, float]], Optional[str]]:
         """
         Extract location and place type from the user's message.
@@ -221,33 +235,31 @@ class TripPlannerAgent(Workflow):
         
         # Retrieve the current off-topic count from the session state
         off_topic_count = st.session_state.get("off_topic_count", 0)
-        
+
         if ev.result == "ONTOPIC":
-            st.session_state["off_topic_count"] = 0  # reset off-topic count
-
-            # Wrap the message in a new SearchPlacesInfoEvent
-            info_event = SearchPlacesInfoEvent(message=ev.message, location=None, place_type=None)
-
-            # Pass that to extract_search_places_info
-            search_places_event = await self.extract_search_places_info(ctx, info_event)
+            st.session_state["off_topic_count"] = 0 # reset off-topic count
+            # Wrap the message in a new SearchPlacesInfoEvent and Pass that to extract_search_places_info
+            search_places_event = await self.extract_search_places_info(ctx, SearchPlacesInfoEvent(message=ev.message, location=None, place_type=None))
             if isinstance(search_places_event, SearchPlacesInfoEvent):
                 return search_places_event
             else:
-                return search_places_event  # This could already be a StopEvent
+                return search_places_event # This could already be a StopEvent
 
-        
         # Increment the off-topic count
         off_topic_count += 1
         st.session_state["off_topic_count"] = off_topic_count  # Update the session state with the new count
         print(f"Off-topic count: {off_topic_count}")
-        
+
         if off_topic_count >= 3 and off_topic_count < 5:
-            return StopEvent(result=ev.result + "\nWell, well, this is convo is going off topic, how about we stick to trip planning?")
+            stop_message = await self.generate_stop_message(ctx, ev)
+            return StopEvent(result=ev.result + " " + stop_message)
         elif off_topic_count >= 5:
-            return StopEvent(result="This is too much of off-topic conversations. Please ask about trip planning. As I won't be able to help you with off topics now until you ask me an ontopic question.")
+            stop_message = await self.generate_stop_message(ctx, ev)
+            return StopEvent(result=stop_message)
         else:
             # Provide a friendly response for off-topic messages
-            return StopEvent(result=ev.result)
+            stop_message = await self.generate_stop_message(ctx, ev)
+            return StopEvent(result=stop_message)
 
     def extract_json_from_text(self, text: str) -> Optional[Any]:
         """
@@ -281,15 +293,14 @@ class TripPlannerAgent(Workflow):
     async def extract_search_places_info(self, ctx: Context, ev: SearchPlacesInfoEvent) -> SearchPlacesExamineEvent | RouteInfoEvent | StopEvent:
         try:
             print(f"Extract search places info ev: {ev}")
-            message = ev.message
-            prompt = f"\n\n {PROMPT_EXTRACT_SEARCH_PLACES_INFO}\n\n Here is the convo history till now: {st.session_state.messages}\n\n and The user has posted the following message.\n Current Message: {message}\n\n"
-
+            prompt = f"\n\n {PROMPT_EXTRACT_SEARCH_PLACES_INFO}\n\n Here is the convo history till now: {st.session_state.messages}\n\n and The user has posted the following message.\n Current Message: {ev.message}\n\n"
             result = self.llm.complete(prompt)
             parsed = self.extract_json_from_text(str(result))
 
             if parsed is None:
                 print(f"Failed to extract JSON from result: {result}")
-                return StopEvent(result="Sorry, I couldn't parse your message. Could you try rephrasing it?")
+                stop_message = await self.generate_stop_message(ctx, ev)
+                return StopEvent(result=stop_message)
 
             # If LLM returned a 'thought', it's either not a valid request or needs clarification
             if "thought" in parsed:
@@ -302,39 +313,44 @@ class TripPlannerAgent(Workflow):
                 })
 
                 print(f"LLM analysis thought: {parsed['thought']}")
+                # stop_message = await self.generate_stop_message(ctx, ev)
+                # return StopEvent(result=stop_message)
                 # return StopEvent(
                 #     result=f"Could you specify the city or area you're interested in, and whether you’re looking for restaurants, hotels, or rest stops?"
                 # )
-                return RouteInfoEvent(route_info=parsed, message=message)
-            
+                return RouteInfoEvent(route_info=parsed, message=ev.message)
+                
+
             if "location" in parsed and "place_type" in parsed:
                 return SearchPlacesExamineEvent(
                     location=parsed["location"],
                     place_type=parsed["place_type"],
-                    message=message
+                    message=ev.message
                 )
-            
+
             # Validate essential fields
             location = parsed.get("location", {})
             place_type = parsed.get("place_type")
             if not location or not place_type:
-                return StopEvent(result="I couldn’t find a clear location or place type. Can you provide a city and let me know if you're looking for restaurants, hotels, or rest stops?")
+                stop_message = await self.generate_stop_message(ctx, ev)
+                return StopEvent(result=stop_message)
 
             lat, lon = location.get("lat"), location.get("lon")
             if lat is None or lon is None:
-                return StopEvent(result="The location data seems incomplete. Could you give a more specific place?")
+                stop_message = await self.generate_stop_message(ctx, ev)
+                return StopEvent(result=stop_message)
 
             # Save extracted data to app state
             StateManager.update_app_state("place_search_info", {
                 "location": location,
                 "place_type": place_type
             })
-            
-            return RouteInfoEvent(message=message)
-        
+            return RouteInfoEvent(message=ev.message)
+
         except Exception as e:
             print(f"Exception in extract_search_places_info: {e}")
-            return StopEvent(result="Oops, something went wrong while processing your request.")
+            stop_message = await self.generate_stop_message(ctx, ev)
+            return StopEvent(result=stop_message)
 
 
     @step
@@ -342,11 +358,15 @@ class TripPlannerAgent(Workflow):
         """Examine if search places API call can be made. if not, stop the conversation."""
         print(f"Examine search places call ev: {ev}")
         if not ev.location or not ev.place_type:
-            return StopEvent(result="I need more information to perform the search. Please specify the location and type of place.")
+            stop_message = await self.generate_stop_message(ctx, ev)
+            return StopEvent(result=stop_message)
+            # return StopEvent(result="I need more information to perform the search. Please specify the location and type of place.")
             
         valid_types = ["restaurant", "rest_area", "hotel"]
         if ev.place_type not in valid_types:
-            return StopEvent(result="The type of place is not valid. Please specify if you are looking for a restaurant, rest area, or hotel.")
+            stop_message = await self.generate_stop_message(ctx, ev)
+            return StopEvent(result=stop_message)
+            # return StopEvent(result="The type of place is not valid. Please specify if you are looking for a restaurant, rest area, or hotel.")
             
         return SearchPlacesCallEvent(
             location=ev.location,
@@ -384,36 +404,82 @@ class TripPlannerAgent(Workflow):
         """Extract route request parameters from user message. Update the app state with the route information."""
         print(f"Extract route info ev: {ev}")
         message = ev.message
-        
-        prompt = f"\n\n{PROMPT_EXTRACT_ROUTE_INFO}\n\n Here is the convo history till now: {st.session_state.messages}\n\n and The user has posted the following message.\n Current Message: {message}\n\n"
-        
+
+        prompt = f"\n\n{PROMPT_EXTRACT_ROUTE_INFO}\n\n----------------------------\n\nBased on the above instructions, please apply to the below information below.\nHere is the convo history till now: {st.session_state.messages}\n\n and The user has posted the following message.\n Current Message: {message}\n\n"        
+
         result = self.llm.complete(prompt)
         try:
-            route_info = json.loads(str(result))
-            if route_info:
-                StateManager.update_chat_state(route_info)
-                return RouteExamineEvent(route_info=route_info, message=message)
+            route_info = self.extract_json_from_text(str(result))
+
+            if route_info and isinstance(route_info, dict) and route_info.get("origin") and route_info.get("destination"):
+                # Further validation of origin and destination
+                origin = route_info.get("origin")
+                destination = route_info.get("destination")
+
+                if isinstance(origin, dict) and isinstance(destination, dict) and \
+                   "lat" in origin and "lon" in origin and "lat" in destination and "lon" in destination:
+
+                    StateManager.update_chat_state(route_info)
+                    return RouteExamineEvent(route_info=route_info, message=message)
+                else:
+                    stop_message = await self.generate_stop_message(ctx, ev)
+                    return StopEvent(result=stop_message)
+
+            elif route_info and isinstance(route_info, dict) and "thought" in route_info:
+                # If the LLM returns a "thought", try to re-prompt it with more specific instructions
+                print("LLM returned a 'thought'. Re-prompting...")
+                reprompt_prompt = f"""The user wants to plan a route.  The previous response indicated a need for clarification.  The user has now provided more information: {message}.  Extract the origin and destination cities or coordinates and return a JSON object as described in the original prompt according to your training data.  Do not include any 'thought' field.  Just return the JSON.
+
+                Original Prompt: {PROMPT_EXTRACT_ROUTE_INFO}
+                """
+                reprompt_result = self.llm.complete(reprompt_prompt)
+                route_info = self.extract_json_from_text(str(reprompt_result))
+
+                if route_info and isinstance(route_info, dict) and route_info.get("origin") and route_info.get("destination"):
+                    # Further validation of origin and destination
+                    origin = route_info.get("origin")
+                    destination = route_info.get("destination")
+
+                    if isinstance(origin, dict) and isinstance(destination, dict) and \
+                       "lat" in origin and "lon" in origin and "lat" in destination and "lon" in destination:
+
+                        StateManager.update_chat_state(route_info)
+                        return RouteExamineEvent(route_info=route_info, message=message)
+                    else:
+                        stop_message = await self.generate_stop_message(ctx, ev)
+                        return StopEvent(result=stop_message)
+                else:
+                    stop_message = await self.generate_stop_message(ctx, ev)
+                    return StopEvent(result=stop_message)
+
             else:
-                return StopEvent(result="I need more information to plan your route. Please provide start and end locations with coordinates, and maximum driving hours per day.")
-        except:
-            print(f"Error in extract_route_info: {result}")
-            return StopEvent(result="There was an error in extract_route_info. Please try again.")
+                stop_message = await self.generate_stop_message(ctx, ev)
+                return StopEvent(result=stop_message)
+
+        except Exception as e:
+            print(f"Error in extract_route_info: {e}")
+            stop_message = await self.generate_stop_message(ctx, ev)
+            return StopEvent(result=stop_message)
 
     @step
     async def examine_route_call(self, ctx: Context, ev: RouteExamineEvent) -> RouteCallEvent | StopEvent:
         """Examine if route calculation is feasible."""
         print(f"Examine route call ev: {ev}")
         route_info = ev.route_info
-        StateManager.update_chat_state(route_info)
-        
-        # Check if all required coordinates and maxDrivingHoursPerDay are present
-        if not all([
-            "start" in route_info and "lat" in route_info["start"] and "lon" in route_info["start"],
-            "end" in route_info and "lat" in route_info["end"] and "lon" in route_info["end"],
-            "maxDrivingHoursPerDay" in route_info
-        ]):
-            return StopEvent(result="I need more information to plan your route. Please provide start and end locations with coordinates, and maximum driving hours per day.")
-        
+
+        # Check if the necessary structure exists
+        if not ("routes" in route_info and len(route_info["routes"]) > 0 and "legs" in route_info["routes"][0] and len(route_info["routes"][0]["legs"]) > 0):
+            stop_message = await self.generate_stop_message(ctx, ev)
+            return StopEvent(result=stop_message)
+
+        # Check if startPoint and endPoint exist within the first leg
+        leg = route_info["routes"][0]["legs"][0]
+        if not ("startPoint" in leg and "latitude" in leg["startPoint"] and "longitude" in leg["startPoint"] and
+                "endPoint" in leg and "latitude" in leg["endPoint"] and "longitude" in leg["endPoint"]):
+            stop_message = await self.generate_stop_message(ctx, ev)
+            return StopEvent(result=stop_message)
+
+        # If everything looks good, proceed to the route calculation step
         return RouteCallEvent(route_info=route_info, message=ev.message)
 
     @step
@@ -422,12 +488,14 @@ class TripPlannerAgent(Workflow):
         print(f"Call route ev: {ev}")
         # Get the calculate_route function from context
         calculate_route_fn = await ctx.get("calculate_route_fn")
-        
+
         # Extract coordinates
-        start_loc = (ev.route_info["start"]["lat"], ev.route_info["start"]["lon"])
-        end_loc = (ev.route_info["end"]["lat"], ev.route_info["end"]["lon"])
-        waypoints = [(wp["lat"], wp["lon"]) for wp in ev.route_info.get("waypoints", [])]
-        
+        route = ev.route_info["routes"][0]
+        leg = route["legs"][0]
+        start_loc = (leg["startPoint"]["latitude"], leg["startPoint"]["longitude"])
+        end_loc = (leg["endPoint"]["latitude"], leg["endPoint"]["longitude"])
+        waypoints = [(wp["latitude"], wp["longitude"]) for wp in ev.route_info.get("waypoints", [])]
+
         # Call the function
         result = await calculate_route_fn(
             start_loc,
@@ -435,7 +503,7 @@ class TripPlannerAgent(Workflow):
             waypoints,
             ev.route_info.get("departAt", datetime.now().isoformat())
         )
-        
+
         # Update app state with route results
         StateManager.update_app_state("route", {
             'start': ev.route_info.get('start'),
@@ -443,6 +511,6 @@ class TripPlannerAgent(Workflow):
             'waypoints': ev.route_info.get('waypoints'),
             'results': result
         })
-        
+
         return StopEvent(result="Your route has been displayed. If you need to make changes, please let me know.")()
             
