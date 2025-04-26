@@ -1,5 +1,7 @@
+from typing import Any, Dict
+
 import streamlit as st
-from typing import Dict, Any
+
 
 class StateManager:
     @staticmethod
@@ -8,7 +10,9 @@ class StateManager:
         if 'app_state' not in st.session_state:
             st.session_state.app_state = {
                 'searches': [],
-                'routes': []
+                'routes': [],
+                'ambiguous': [],  
+                'place_search_info': []  
             }
         if 'chat_state' not in st.session_state:
             st.session_state.chat_state = {
@@ -36,7 +40,10 @@ class StateManager:
     @staticmethod
     def update_app_state(action: str, data: Dict[str, Any]):
         """Update app state based on action"""
-        if action == "search":
-            st.session_state.app_state['searches'].append(data)
-        elif action == "route":
-            st.session_state.app_state['routes'].append(data) 
+        if 'app_state' not in st.session_state:
+            st.session_state.app_state = {}  # This is extra defensive (optional)
+            
+        if action not in st.session_state.app_state:
+            st.session_state.app_state[action] = []
+
+        st.session_state.app_state[action].append(data)

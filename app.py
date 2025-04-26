@@ -1,10 +1,11 @@
 #source venv/bin/activate && streamlit run app.py
-import streamlit as st
-import os
-import datetime
-from typing import List, Dict, Any, Tuple, Optional
 import asyncio
+import datetime
+import os
+from typing import Any, Dict, List, Optional, Tuple
+
 import folium
+import streamlit as st
 from streamlit_folium import st_folium
 
 # Import custom modules
@@ -23,6 +24,7 @@ OPENROUTER_API_KEY = env_vars["OPENROUTER_API_KEY"]
 if 'initialized' not in st.session_state:
     st.session_state.initialized = True
     st.session_state.messages = []
+    st.session_state.off_topic_count = 0  # Initialize off-topic count
     StateManager.init_session_state()
     # Add welcome message
     welcome_msg = (
@@ -75,7 +77,7 @@ with col1:
         
         try:
             # Send message to agent
-            response = asyncio.run(agent.async_chat(message))
+            response = asyncio.run(agent.async_chat(message, st.session_state.messages))
             
             # Add assistant message to chat
             st.session_state.messages.append({"role": "assistant", "content": response})

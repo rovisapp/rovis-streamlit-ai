@@ -1,445 +1,435 @@
 {
-    "items": [
-      {
-        "title": "Gulf",
-        "id": "here:pds:place:840dr74r-5e2e34a96bd7437bb06004847b1300e1",
-        "language": "en",
-        "resultType": "place",
-        "address": {
-          "label": "Gulf, 191 Route 17, Tuxedo Park, NY 10987, United States",
-          "countryCode": "USA",
-          "countryName": "United States",
-          "stateCode": "NY",
-          "state": "New York",
-          "county": "Orange",
-          "city": "Tuxedo Park",
-          "street": "Route 17",
-          "postalCode": "10987",
-          "houseNumber": "191"
-        },
-        "position": {
-          "lat": 41.19018,
-          "lng": -74.18425
-        },
-        "access": [
-          {
-            "lat": 41.19019,
-            "lng": -74.18409
-          }
-        ],
-        "distance": 2012,
-        "categories": [
-          {
-            "id": "700-7600-0116",
-            "name": "Gas Station",
-            "primary": true
-          }
-        ],
-        "chains": [
-          {
-            "id": "83",
-            "name": "Gulf"
-          }
-        ],
-        "references": [
-          {
-            "supplier": {
-              "id": "core"
-            },
-            "id": "37310101"
+  "items": [
+    {
+      "title": "Gulf",
+      "id": "here:pds:place:840dr74r-5e2e34a96bd7437bb06004847b1300e1",
+      "language": "en",
+      "resultType": "place",
+      "address": {
+        "label": "Gulf, 191 Route 17, Tuxedo Park, NY 10987, United States",
+        "countryCode": "USA",
+        "countryName": "United States",
+        "stateCode": "NY",
+        "state": "New York",
+        "county": "Orange",
+        "city": "Tuxedo Park",
+        "street": "Route 17",
+        "postalCode": "10987",
+        "houseNumber": "191"
+      },
+      "position": {
+        "lat": 41.19018,
+        "lng": -74.18425
+      },
+      "access": [
+        {
+          "lat": 41.19019,
+          "lng": -74.18409
+        }
+      ],
+      "distance": 2012,
+      "categories": [
+        {
+          "id": "700-7600-0116",
+          "name": "Gas Station",
+          "primary": true
+        }
+      ],
+      "chains": [
+        {
+          "id": "83",
+          "name": "Gulf"
+        }
+      ],
+      "references": [
+        {
+          "supplier": {
+            "id": "core"
           },
-          {
-            "supplier": {
-              "id": "yelp"
-            },
-            "id": "noM_tExlDRRf-RTHRMra3w"
-          }
-        ],
-        "contacts": [
-          {
-            "phone": [
-              {
-                "value": "+18453512670"
-              }
-            ],
-            "www": [
-              {
-                "value": "http://gulfoil.com"
-              },
-              {
-                "value": "https://www.gulfoil.com"
-              }
-            ],
-            "email": [
-              {
-                "value": "tuxedosushi@hotmail.com"
-              }
-            ]
-          }
-        ],
-        "openingHours": [
-          {
-            "text": [
-              "Mon-Sun: 00:00 - 24:00"
-            ],
-            "isOpen": true,
-            "structured": [
-              {
-                "start": "T000000",
-                "duration": "PT24H00M",
-                "recurrence": "FREQ:DAILY;BYDAY:MO,TU,WE,TH,FR,SA,SU"
-              }
-            ]
-          }
-        ],
-        "payment": {
-          "methods": [
+          "id": "37310101"
+        },
+        {
+          "supplier": {
+            "id": "yelp"
+          },
+          "id": "noM_tExlDRRf-RTHRMra3w"
+        }
+      ],
+      "contacts": [
+        {
+          "phone": [
             {
-              "id": "mastercard",
-              "accepted": true
+              "value": "+18453512670"
+            }
+          ],
+          "www": [
+            {
+              "value": "http://gulfoil.com"
+            },
+            {
+              "value": "https://www.gulfoil.com"
+            }
+          ],
+          "email": [
+            {
+              "value": "tuxedosushi@hotmail.com"
             }
           ]
         }
-      },
-      {
-        "title": "Valero",
-        "id": "here:pds:place:840dr768-68dceeefe5d03d8949da6bbd3019054a",
-        "language": "en",
-        "resultType": "place",
-        "address": {
-          "label": "Valero, 1011 Route 17, Southfields, NY 10975-3113, United States",
-          "countryCode": "USA",
-          "countryName": "United States",
-          "stateCode": "NY",
-          "state": "New York",
-          "county": "Orange",
-          "city": "Southfields",
-          "street": "Route 17",
-          "postalCode": "10975-3113",
-          "houseNumber": "1011"
-        },
-        "position": {
-          "lat": 41.24354,
-          "lng": -74.17654
-        },
-        "access": [
-          {
-            "lat": 41.24351,
-            "lng": -74.17633
-          }
-        ],
-        "distance": 3957,
-        "categories": [
-          {
-            "id": "700-7600-0116",
-            "name": "Gas Station",
-            "primary": true
-          }
-        ],
-        "chains": [
-          {
-            "id": "925",
-            "name": "Valero"
-          }
-        ],
-        "references": [
-          {
-            "supplier": {
-              "id": "core"
-            },
-            "id": "37290930"
-          },
-          {
-            "supplier": {
-              "id": "yelp"
-            },
-            "id": "iWhxOylaJswDhNc93yHU1w"
-          }
-        ],
-        "contacts": [
-          {
-            "phone": [
-              {
-                "value": "+18453514816"
-              }
-            ],
-            "www": [
-              {
-                "value": "https://locations.valero.com/en-us/LocationDetails/Index/1011-ROUTE-17/0000001762"
-              },
-              {
-                "value": "https://www.valero.com/en-us"
-              }
-            ]
-          }
-        ],
-        "openingHours": [
-          {
-            "text": [
-              "Mon-Sun: 00:00 - 24:00"
-            ],
-            "isOpen": true,
-            "structured": [
-              {
-                "start": "T000000",
-                "duration": "PT24H00M",
-                "recurrence": "FREQ:DAILY;BYDAY:MO,TU,WE,TH,FR,SA,SU"
-              }
-            ]
-          }
-        ]
-      },
-      {
-        "title": "CITGO",
-        "id": "here:pds:place:840dr74p-406b82d7d79b4e66acb8de6f97234497",
-        "language": "en",
-        "resultType": "place",
-        "address": {
-          "label": "CITGO, 75 Orange Tpke, Sloatsburg, NY 10974-2233, United States",
-          "countryCode": "USA",
-          "countryName": "United States",
-          "stateCode": "NY",
-          "state": "New York",
-          "county": "Rockland",
-          "city": "Sloatsburg",
-          "street": "Orange Tpke",
-          "postalCode": "10974-2233",
-          "houseNumber": "75"
-        },
-        "position": {
-          "lat": 41.15645,
-          "lng": -74.19326
-        },
-        "access": [
-          {
-            "lat": 41.15643,
-            "lng": -74.19305
-          }
-        ],
-        "distance": 5832,
-        "categories": [
-          {
-            "id": "700-7600-0116",
-            "name": "Gas Station",
-            "primary": true
-          },
-          {
-            "id": "600-6000-0061",
-            "name": "Convenience Store"
-          }
-        ],
-        "chains": [
-          {
-            "id": "128",
-            "name": "CITGO"
-          }
-        ],
-        "references": [
-          {
-            "supplier": {
-              "id": "core"
-            },
-            "id": "1130615742"
-          },
-          {
-            "supplier": {
-              "id": "core"
-            },
-            "id": "1179176185"
-          },
-          {
-            "supplier": {
-              "id": "yelp"
-            },
-            "id": "bLz5naU-613ckpWm24BPMw"
-          }
-        ],
-        "contacts": [
-          {
-            "phone": [
-              {
-                "value": "+18457532565"
-              }
-            ],
-            "www": [
-              {
-                "value": "https://www.citgo.com",
-                "categories": [
-                  {
-                    "id": "700-7600-0116"
-                  }
-                ]
-              }
-            ]
-          }
-        ],
-        "openingHours": [
-          {
-            "categories": [
-              {
-                "id": "700-7600-0116"
-              }
-            ],
-            "text": [
-              "Mon-Sun: 06:00 - 22:00"
-            ],
-            "isOpen": true,
-            "structured": [
-              {
-                "start": "T060000",
-                "duration": "PT16H00M",
-                "recurrence": "FREQ:DAILY;BYDAY:MO,TU,WE,TH,FR,SA,SU"
-              }
-            ]
-          }
-        ],
-        "payment": {
-          "methods": [
+      ],
+      "openingHours": [
+        {
+          "text": ["Mon-Sun: 00:00 - 24:00"],
+          "isOpen": true,
+          "structured": [
             {
-              "id": "mastercard",
-              "accepted": true
+              "start": "T000000",
+              "duration": "PT24H00M",
+              "recurrence": "FREQ:DAILY;BYDAY:MO,TU,WE,TH,FR,SA,SU"
             }
           ]
         }
-      },
-      {
-        "title": "Sunoco",
-        "id": "here:pds:place:840dr74p-4a04ceed71a26b7fc612f954c8cddad7",
-        "language": "en",
-        "resultType": "place",
-        "address": {
-          "label": "Sunoco, Sloatsburg, NY 10974, United States",
-          "countryCode": "USA",
-          "countryName": "United States",
-          "stateCode": "NY",
-          "state": "New York",
-          "county": "Rockland",
-          "city": "Sloatsburg",
-          "postalCode": "10974"
-        },
-        "position": {
-          "lat": 41.15238,
-          "lng": -74.18843
-        },
-        "access": [
+      ],
+      "payment": {
+        "methods": [
           {
-            "lat": 41.15239,
-            "lng": -74.18867
-          }
-        ],
-        "distance": 6229,
-        "categories": [
-          {
-            "id": "700-7600-0116",
-            "name": "Gas Station",
-            "primary": true
-          },
-          {
-            "id": "600-6000-0061",
-            "name": "Convenience Store"
-          }
-        ],
-        "chains": [
-          {
-            "id": "154",
-            "name": "Sunoco"
-          }
-        ],
-        "references": [
-          {
-            "supplier": {
-              "id": "core"
-            },
-            "id": "995040489"
-          },
-          {
-            "supplier": {
-              "id": "core"
-            },
-            "id": "995040492"
-          },
-          {
-            "supplier": {
-              "id": "yelp"
-            },
-            "id": "E1dwUweFJBZ894y7gWoAhw"
-          }
-        ],
-        "contacts": [
-          {
-            "phone": [
-              {
-                "value": "+18457535661"
-              }
-            ]
-          }
-        ],
-        "openingHours": [
-          {
-            "text": [
-              "Mon-Sun: 00:00 - 24:00"
-            ],
-            "isOpen": true,
-            "structured": [
-              {
-                "start": "T000000",
-                "duration": "PT24H00M",
-                "recurrence": "FREQ:DAILY;BYDAY:MO,TU,WE,TH,FR,SA,SU"
-              }
-            ]
-          }
-        ]
-      },
-      {
-        "title": "ViaLynk",
-        "id": "here:pds:place:evcp0-N2E1M2VhNzItMDhjNy0xMWVmLWJhMmMtNDIwMTBhYTQwMDQz",
-        "language": "en",
-        "resultType": "place",
-        "address": {
-          "label": "ViaLynk, 115 Torne Valley Rd, Hillburn, NY 10931, United States",
-          "countryCode": "USA",
-          "countryName": "United States",
-          "stateCode": "NY",
-          "state": "New York",
-          "county": "Rockland",
-          "city": "Hillburn",
-          "street": "Torne Valley Rd",
-          "postalCode": "10931",
-          "houseNumber": "115"
-        },
-        "position": {
-          "lat": 41.13814,
-          "lng": -74.16217
-        },
-        "access": [
-          {
-            "lat": 41.13813,
-            "lng": -74.16209
-          }
-        ],
-        "distance": 7957,
-        "categories": [
-          {
-            "id": "700-7600-0322",
-            "name": "EV Charging Station",
-            "primary": true
-          }
-        ],
-        "openingHours": [
-          {
-            "text": [
-              "Mon-Sun: 00:00 - 24:00"
-            ],
-            "isOpen": true,
-            "structured": [
-              {
-                "start": "T000000",
-                "duration": "PT24H00M",
-                "recurrence": "FREQ:DAILY;BYDAY:MO,TU,WE,TH,FR,SA,SU"
-              }
-            ]
+            "id": "mastercard",
+            "accepted": true
           }
         ]
       }
-    ]
-  }
+    },
+    {
+      "title": "Valero",
+      "id": "here:pds:place:840dr768-68dceeefe5d03d8949da6bbd3019054a",
+      "language": "en",
+      "resultType": "place",
+      "address": {
+        "label": "Valero, 1011 Route 17, Southfields, NY 10975-3113, United States",
+        "countryCode": "USA",
+        "countryName": "United States",
+        "stateCode": "NY",
+        "state": "New York",
+        "county": "Orange",
+        "city": "Southfields",
+        "street": "Route 17",
+        "postalCode": "10975-3113",
+        "houseNumber": "1011"
+      },
+      "position": {
+        "lat": 41.24354,
+        "lng": -74.17654
+      },
+      "access": [
+        {
+          "lat": 41.24351,
+          "lng": -74.17633
+        }
+      ],
+      "distance": 3957,
+      "categories": [
+        {
+          "id": "700-7600-0116",
+          "name": "Gas Station",
+          "primary": true
+        }
+      ],
+      "chains": [
+        {
+          "id": "925",
+          "name": "Valero"
+        }
+      ],
+      "references": [
+        {
+          "supplier": {
+            "id": "core"
+          },
+          "id": "37290930"
+        },
+        {
+          "supplier": {
+            "id": "yelp"
+          },
+          "id": "iWhxOylaJswDhNc93yHU1w"
+        }
+      ],
+      "contacts": [
+        {
+          "phone": [
+            {
+              "value": "+18453514816"
+            }
+          ],
+          "www": [
+            {
+              "value": "https://locations.valero.com/en-us/LocationDetails/Index/1011-ROUTE-17/0000001762"
+            },
+            {
+              "value": "https://www.valero.com/en-us"
+            }
+          ]
+        }
+      ],
+      "openingHours": [
+        {
+          "text": ["Mon-Sun: 00:00 - 24:00"],
+          "isOpen": true,
+          "structured": [
+            {
+              "start": "T000000",
+              "duration": "PT24H00M",
+              "recurrence": "FREQ:DAILY;BYDAY:MO,TU,WE,TH,FR,SA,SU"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "CITGO",
+      "id": "here:pds:place:840dr74p-406b82d7d79b4e66acb8de6f97234497",
+      "language": "en",
+      "resultType": "place",
+      "address": {
+        "label": "CITGO, 75 Orange Tpke, Sloatsburg, NY 10974-2233, United States",
+        "countryCode": "USA",
+        "countryName": "United States",
+        "stateCode": "NY",
+        "state": "New York",
+        "county": "Rockland",
+        "city": "Sloatsburg",
+        "street": "Orange Tpke",
+        "postalCode": "10974-2233",
+        "houseNumber": "75"
+      },
+      "position": {
+        "lat": 41.15645,
+        "lng": -74.19326
+      },
+      "access": [
+        {
+          "lat": 41.15643,
+          "lng": -74.19305
+        }
+      ],
+      "distance": 5832,
+      "categories": [
+        {
+          "id": "700-7600-0116",
+          "name": "Gas Station",
+          "primary": true
+        },
+        {
+          "id": "600-6000-0061",
+          "name": "Convenience Store"
+        }
+      ],
+      "chains": [
+        {
+          "id": "128",
+          "name": "CITGO"
+        }
+      ],
+      "references": [
+        {
+          "supplier": {
+            "id": "core"
+          },
+          "id": "1130615742"
+        },
+        {
+          "supplier": {
+            "id": "core"
+          },
+          "id": "1179176185"
+        },
+        {
+          "supplier": {
+            "id": "yelp"
+          },
+          "id": "bLz5naU-613ckpWm24BPMw"
+        }
+      ],
+      "contacts": [
+        {
+          "phone": [
+            {
+              "value": "+18457532565"
+            }
+          ],
+          "www": [
+            {
+              "value": "https://www.citgo.com",
+              "categories": [
+                {
+                  "id": "700-7600-0116"
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "openingHours": [
+        {
+          "categories": [
+            {
+              "id": "700-7600-0116"
+            }
+          ],
+          "text": ["Mon-Sun: 06:00 - 22:00"],
+          "isOpen": true,
+          "structured": [
+            {
+              "start": "T060000",
+              "duration": "PT16H00M",
+              "recurrence": "FREQ:DAILY;BYDAY:MO,TU,WE,TH,FR,SA,SU"
+            }
+          ]
+        }
+      ],
+      "payment": {
+        "methods": [
+          {
+            "id": "mastercard",
+            "accepted": true
+          }
+        ]
+      }
+    },
+    {
+      "title": "Sunoco",
+      "id": "here:pds:place:840dr74p-4a04ceed71a26b7fc612f954c8cddad7",
+      "language": "en",
+      "resultType": "place",
+      "address": {
+        "label": "Sunoco, Sloatsburg, NY 10974, United States",
+        "countryCode": "USA",
+        "countryName": "United States",
+        "stateCode": "NY",
+        "state": "New York",
+        "county": "Rockland",
+        "city": "Sloatsburg",
+        "postalCode": "10974"
+      },
+      "position": {
+        "lat": 41.15238,
+        "lng": -74.18843
+      },
+      "access": [
+        {
+          "lat": 41.15239,
+          "lng": -74.18867
+        }
+      ],
+      "distance": 6229,
+      "categories": [
+        {
+          "id": "700-7600-0116",
+          "name": "Gas Station",
+          "primary": true
+        },
+        {
+          "id": "600-6000-0061",
+          "name": "Convenience Store"
+        }
+      ],
+      "chains": [
+        {
+          "id": "154",
+          "name": "Sunoco"
+        }
+      ],
+      "references": [
+        {
+          "supplier": {
+            "id": "core"
+          },
+          "id": "995040489"
+        },
+        {
+          "supplier": {
+            "id": "core"
+          },
+          "id": "995040492"
+        },
+        {
+          "supplier": {
+            "id": "yelp"
+          },
+          "id": "E1dwUweFJBZ894y7gWoAhw"
+        }
+      ],
+      "contacts": [
+        {
+          "phone": [
+            {
+              "value": "+18457535661"
+            }
+          ]
+        }
+      ],
+      "openingHours": [
+        {
+          "text": ["Mon-Sun: 00:00 - 24:00"],
+          "isOpen": true,
+          "structured": [
+            {
+              "start": "T000000",
+              "duration": "PT24H00M",
+              "recurrence": "FREQ:DAILY;BYDAY:MO,TU,WE,TH,FR,SA,SU"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "ViaLynk",
+      "id": "here:pds:place:evcp0-N2E1M2VhNzItMDhjNy0xMWVmLWJhMmMtNDIwMTBhYTQwMDQz",
+      "language": "en",
+      "resultType": "place",
+      "address": {
+        "label": "ViaLynk, 115 Torne Valley Rd, Hillburn, NY 10931, United States",
+        "countryCode": "USA",
+        "countryName": "United States",
+        "stateCode": "NY",
+        "state": "New York",
+        "county": "Rockland",
+        "city": "Hillburn",
+        "street": "Torne Valley Rd",
+        "postalCode": "10931",
+        "houseNumber": "115"
+      },
+      "position": {
+        "lat": 41.13814,
+        "lng": -74.16217
+      },
+      "access": [
+        {
+          "lat": 41.13813,
+          "lng": -74.16209
+        }
+      ],
+      "distance": 7957,
+      "categories": [
+        {
+          "id": "700-7600-0322",
+          "name": "EV Charging Station",
+          "primary": true
+        }
+      ],
+      "openingHours": [
+        {
+          "text": ["Mon-Sun: 00:00 - 24:00"],
+          "isOpen": true,
+          "structured": [
+            {
+              "start": "T000000",
+              "duration": "PT24H00M",
+              "recurrence": "FREQ:DAILY;BYDAY:MO,TU,WE,TH,FR,SA,SU"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

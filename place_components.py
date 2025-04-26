@@ -1,6 +1,9 @@
+from typing import Any, Dict, List
+
 import streamlit as st
-from typing import List, Dict, Any
-from travel_components import format_time_duration, format_distance
+
+from travel_components import format_distance, format_time_duration
+
 
 def display_places_sidebar(places: List[Dict[str, Any]]) -> None:
     """Display a list of places in the sidebar"""

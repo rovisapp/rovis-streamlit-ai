@@ -1,9 +1,11 @@
+import re
+from typing import Any, Dict, List, Optional, Tuple
+
 import folium
+import streamlit as st
 from folium.plugins import Draw, MarkerCluster
 from streamlit_folium import folium_static
-import streamlit as st
-from typing import List, Dict, Any, Tuple, Optional
-import re
+
 
 def create_map(
     center: List[float] = [37.0902, -95.7129],

@@ -1,6 +1,8 @@
-import requests
-from typing import List, Dict, Any, Tuple, Optional
 import json
+from typing import Any, Dict, List, Optional, Tuple
+
+import requests
+
 
 class TomTomAPI:
     def __init__(self, api_key: str):
