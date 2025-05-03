@@ -25,7 +25,9 @@ if 'initialized' not in st.session_state:
     st.session_state.initialized = True
     st.session_state.messages = []
     st.session_state.off_topic_count = 0  # Initialize off-topic count
+    st.session_state.shown_function_requests = set()  # Track shown function requests
     StateManager.init_session_state()
+    
     # Add welcome message
     welcome_msg = (
         "I can help you plan your travel. Please answer these questions:\n"
@@ -46,6 +48,19 @@ def get_agent():
     return agent
 
 agent = get_agent()
+
+# Function to handle function requests
+def handle_function_request(request):
+    request_id = request.get('requestId', 'unknown')
+    # Only show if we haven't shown this request before
+    if request_id not in st.session_state.shown_function_requests:
+        st.session_state.shown_function_requests.add(request_id)
+        # Show progress indicator
+        with st.chat_message("assistant"):
+            st.info(f"{request.get('name', 'unknown')} {request_id} in progress...")
+
+# Register the function request listener
+StateManager.add_event_listener("function_request", handle_function_request)
 
 # Main chat interface
 st.header("Rovis")

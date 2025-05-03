@@ -189,11 +189,11 @@ class TripPlannerAgent(Workflow):
             modelMsg = f"<start_of_turn_user>model\n{parsed_result['response']}</end_of_turn>"
             self.log_conversation(userMsg, modelMsg)
             
-            # TODO: Handle function requests from result.functions
-            # For now, just publish events for each function request
+            # Handle function requests
             if "functions" in parsed_result:
                 for request in parsed_result["functions"]:
-                    # TODO: Implement proper event handling for function requests
+                    # Emit function request event
+                    StateManager.emit_event("function_request", request)
                     print(f"Function request: {request}")
             
             return StopEvent(result=parsed_result["response"])
