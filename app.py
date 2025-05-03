@@ -74,10 +74,18 @@ with col1:
             for message in st.session_state.messages:
                 with st.chat_message(message["role"]):
                     st.markdown(message["content"])
+            
+            # Show progress indicator
+            with st.chat_message("assistant"):
+                progress_placeholder = st.empty()
+                progress_placeholder.info("Thinking...")
         
         try:
             # Send message to agent
             response = asyncio.run(agent.async_chat(message, st.session_state.messages))
+            
+            # Clear progress indicator
+            progress_placeholder.empty()
             
             # Add assistant message to chat
             st.session_state.messages.append({"role": "assistant", "content": response})
@@ -89,6 +97,9 @@ with col1:
                         st.markdown(message["content"])
                     
         except Exception as e:
+            # Clear progress indicator
+            progress_placeholder.empty()
+            
             st.error(f"An error occurred: {str(e)}")
             st.session_state.messages.append({
                 "role": "assistant",
