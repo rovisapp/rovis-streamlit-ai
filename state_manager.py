@@ -6,44 +6,28 @@ import streamlit as st
 class StateManager:
     @staticmethod
     def init_session_state():
-        """Initialize session state if not exists"""
-        if 'app_state' not in st.session_state:
-            st.session_state.app_state = {
-                'searches': [],
-                'routes': [],
-                'ambiguous': [],  
-                'place_search_info': []  
-            }
+        """Initialize session state if not already initialized"""
         if 'chat_state' not in st.session_state:
-            st.session_state.chat_state = {
-                'start': None,
-                'end': None,
-                'endAtStart': False,
-                'waypoints': [],
-                'userTimeConstraintDescription': None,
-                'maxDrivingHoursPerDay': None,
-                'maxWalkingTime': None,
-                'departAt': None,
-                'reachBy': None,
-                'thought': None,
-                'response': None,
-                'action': None
-            }
-
-    @staticmethod
-    def update_chat_state(route_info: Dict[str, Any]):
-        """Update chat state with route information"""
-        for key, value in route_info.items():
-            if key in st.session_state.chat_state:
-                st.session_state.chat_state[key] = value
-
-    @staticmethod
-    def update_app_state(action: str, data: Dict[str, Any]):
-        """Update app state based on action"""
+            st.session_state.chat_state = {}
         if 'app_state' not in st.session_state:
-            st.session_state.app_state = {}  # This is extra defensive (optional)
-            
-        if action not in st.session_state.app_state:
-            st.session_state.app_state[action] = []
+            st.session_state.app_state = {}
 
-        st.session_state.app_state[action].append(data)
+    @staticmethod
+    def get_chat_state() -> dict:
+        """Get the current chat state"""
+        return st.session_state.get('chat_state', {})
+
+    @staticmethod
+    def get_app_state() -> dict:
+        """Get the current application state"""
+        return st.session_state.get('app_state', {})
+
+    @staticmethod
+    def update_chat_state(new_state: dict):
+        """Update chat state with new state"""
+        st.session_state.chat_state = new_state
+
+    @staticmethod
+    def update_app_state(new_state: dict):
+        """Update app state with new state"""
+        st.session_state.app_state = new_state
