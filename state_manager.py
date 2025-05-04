@@ -1,4 +1,5 @@
 from typing import Any, Dict
+import asyncio
 
 import streamlit as st
 
@@ -27,13 +28,20 @@ class StateManager:
         return st.session_state.get('app_state', {})
     
     @staticmethod
+    def get_session_state() -> dict:
+        """Get the current application state"""
+        return st.session_state
+    
+    @staticmethod
     def update_chat_state(new_state: dict):
         """Update chat state with new state"""
+        # Update the chat state
         st.session_state.chat_state = new_state
     
     @staticmethod
     def update_app_state(new_state: dict):
         """Update app state with new state"""
+        # Simply update the app state with the new state
         st.session_state.app_state = new_state
     
     @staticmethod
@@ -44,8 +52,11 @@ class StateManager:
         st.session_state.event_listeners[event_type].append(callback)
     
     @staticmethod
-    def emit_event(event_type: str, data: Any):
+    async def emit_event(event_type: str, data: Any):
         """Emit an event to all listeners."""
         if event_type in st.session_state.event_listeners:
             for callback in st.session_state.event_listeners[event_type]:
-                callback(data)
+                if asyncio.iscoroutinefunction(callback):
+                    await callback(data)
+                else:
+                    callback(data)

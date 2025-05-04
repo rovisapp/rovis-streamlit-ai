@@ -97,13 +97,14 @@ with col1:
         
         try:
             # Send message to agent
-            response = asyncio.run(agent.async_chat(message, st.session_state.messages))
+            response = asyncio.run(agent.async_chat({"role": "user", "content": message}, st.session_state.messages,0))
             
             # Clear progress indicator
             progress_placeholder.empty()
             
-            # Add assistant message to chat
-            st.session_state.messages.append({"role": "assistant", "content": response})
+            # Add assistant message to chat only if response is not empty
+            if response and response.strip():
+                st.session_state.messages.append({"role": "assistant", "content": response})
             
             # Update chat display immediately
             with chat_container.container():
