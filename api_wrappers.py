@@ -2,6 +2,7 @@ import json
 from typing import Any, Dict, List, Optional, Tuple
 
 import requests
+import aiohttp
 
 
 class TomTomAPI:
@@ -37,7 +38,7 @@ class TomTomAPI:
         self, 
         start_location: Tuple[float, float], 
         end_location: Tuple[float, float], 
-        supporting_points: List[Tuple[float, float]] = None,
+        supporting_points: List[Dict[str, Any]] = None,
         departure_time: str = None
     ) -> Dict[str, Any]:
         """Calculate a route using TomTom API"""
@@ -62,10 +63,11 @@ class TomTomAPI:
         data = {}
         if supporting_points and len(supporting_points) > 0:
             data["supportingPoints"] = [
-                {"latitude": lat, "longitude": lon} for lat, lon in supporting_points
+                {"latitude": point.get('lat'), "longitude": point.get('lon')} 
+                for point in supporting_points
             ]
         else:
-            data["supportingPoints"] = {}
+            data["supportingPoints"] = []
         
         print(f"\nRoute API call:")
         print(f"URL: {url}")
@@ -148,7 +150,7 @@ class HereAPI:
         
         self.gas_stations = ["700-7600"]
     
-    def search_places(
+    async def search_places(
         self,
         location: Tuple[float, float], 
         radius: int = 8047,  # 5 miles in meters
@@ -174,14 +176,15 @@ class HereAPI:
             params["foodTypes"] = ",".join(food_types)
         
         try:
-            response = requests.get(url, params=params)
-            response.raise_for_status()
-            return response.json()
-        except (requests.RequestException, json.JSONDecodeError) as e:
+            async with aiohttp.ClientSession() as session:
+                async with session.get(url, params=params) as response:
+                    response.raise_for_status()
+                    return await response.json()
+        except (aiohttp.ClientError, json.JSONDecodeError) as e:
             print(f"Error searching places: {str(e)}")
             return {"items": []}
     
-    def search_meal_places(
+    async def search_meal_places(
         self, 
         location: Tuple[float, float], 
         radius: int = 8047,
@@ -192,31 +195,31 @@ class HereAPI:
         categories = self.meal_categories
         food_types = [food_type] if food_type else None
         
-        return self.search_places(location, radius, categories, food_types, limit)
+        return await self.search_places(location, radius, categories, food_types, limit)
     
-    def search_rest_areas(
+    async def search_rest_areas(
         self, 
         location: Tuple[float, float], 
         radius: int = 8047,
         limit: int = 20
     ) -> Dict[str, Any]:
         """Search for rest areas near a location"""
-        return self.search_places(location, radius, self.rest_categories, None, limit)
+        return await self.search_places(location, radius, self.rest_categories, None, limit)
     
-    def search_hotels(
+    async def search_hotels(
         self, 
         location: Tuple[float, float], 
         radius: int = 8047,
         limit: int = 20
     ) -> Dict[str, Any]:
         """Search for hotels near a location"""
-        return self.search_places(location, radius, self.hotel_categories, None, limit)
+        return await self.search_places(location, radius, self.hotel_categories, None, limit)
     
-    def search_gas_stations(
+    async def search_gas_stations(
         self, 
         location: Tuple[float, float], 
         radius: int = 8047,
         limit: int = 20
     ) -> Dict[str, Any]:
         """Search for gas stations near a location"""
-        return self.search_places(location, radius, self.gas_stations, None, limit)
+        return await self.search_places(location, radius, self.gas_stations, None, limit)

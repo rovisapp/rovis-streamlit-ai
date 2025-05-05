@@ -35,6 +35,7 @@ class StateManager:
     @staticmethod
     def update_chat_state(new_state: dict):
         """Update chat state with new state"""
+        # print(f"Updating chat state: {new_state}")
         # Update the chat state
         st.session_state.chat_state = new_state
     
@@ -42,6 +43,7 @@ class StateManager:
     def update_app_state(new_state: dict):
         """Update app state with new state"""
         # Simply update the app state with the new state
+        # print(f"Updating app state: {new_state}")
         st.session_state.app_state = new_state
     
     @staticmethod

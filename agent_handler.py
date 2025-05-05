@@ -13,9 +13,11 @@ import json
 from prompt import PROMPT_ONE_SHOT
 from state_manager import StateManager
 from load_env import load_environment
+from api_wrappers import HereAPI, TomTomAPI
 import re
 import streamlit as st
 import asyncio
+import traceback
 
 # Constants
 CONVERSATION_HISTORY_LIMIT = 50
@@ -24,6 +26,10 @@ CONVERSATION_HISTORY_LIMIT = 50
 env_vars = load_environment()
 TOMTOM_API_KEY = env_vars["TOMTOM_API_KEY"]
 HERE_API_KEY = env_vars["HERE_API_KEY"]
+
+# Initialize API clients
+here_api = HereAPI(HERE_API_KEY)
+tomtom_api = TomTomAPI(TOMTOM_API_KEY)
 
 class TripPlannerAgent(Workflow):
     """Trip planner workflow implementation."""
@@ -50,12 +56,13 @@ class TripPlannerAgent(Workflow):
             match request.get('name'):
                 case 'search_place':
                     # Extract parameters from request
-                    location = request.get('parameters', {}).get('location')
-                    radius = request.get('parameters', {}).get('radius', 8047)
-                    type = request.get('parameters', {}).get('type', '')
+                    lat = request.get('params', {}).get('lat')
+                    lon = request.get('params', {}).get('lon')
+                    radius = request.get('params', {}).get('radius', 8047)
+                    type = request.get('params', {}).get('type', '')
                     
                     # Call search_places_fn with parameters
-                    result = await self.search_places_fn(location, radius, type)
+                    result = await self.search_places_fn(lat, lon, radius, type)
                     # Format results as XML
                     items_xml = "<items>"
                     for item in result.get('items', []):
@@ -74,10 +81,12 @@ class TripPlannerAgent(Workflow):
                 
                 case 'route':
                     # Extract parameters from request
-                    start = request.get('parameters', {}).get('start')
-                    end = request.get('parameters', {}).get('end')
-                    waypoints = request.get('parameters', {}).get('waypoints', [])
-                    depart_at = request.get('parameters', {}).get('depart_at')
+                    start_obj = request.get('params', {}).get('start', {})
+                    end_obj = request.get('params', {}).get('end', {})
+                    start = (start_obj.get('lat'), start_obj.get('lon'))
+                    end = (end_obj.get('lat'), end_obj.get('lon'))
+                    waypoints = request.get('params', {}).get('waypoints', [])
+                    depart_at = request.get('params', {}).get('departAt')
                     
                     # Call calculate_route_fn with parameters
                     result = await self.calculate_route_fn(start, end, waypoints, depart_at)
@@ -117,7 +126,7 @@ class TripPlannerAgent(Workflow):
             # Find the function with matching requestId and update its result
             for func in app_state['functions']:
                 if func.get('requestId') == request_id:
-                    func['result'] = result
+                    # func['result'] = result
                     func['result_short'] = result_short
                     break
             # Update the app state
@@ -152,43 +161,47 @@ class TripPlannerAgent(Workflow):
         return None
 
     
-    async def search_places_fn(self, location: Tuple[float, float], radius: int = 8047, type: str = "") -> Dict[str, Any]:
-        """Mock function to simulate search_places API call"""
-        print(f"\n=== Mock search_places_fn called ===")
-        print(f"Location: {location}")
+    async def search_places_fn(self, lat: float, lon: float, radius: int = 8047, type: str = "") -> Dict[str, Any]:
+        """Search for places using HERE API based on type"""
+        print(f"\n=== Search places called ===")
+        print(f"Location: ({lat}, {lon})")
         print(f"Radius: {radius} meters")
         print(f"Type: {type}")
-        print("=== End mock search_places_fn ===\n")
         
-        # Real API call would be:
-        # result = await here_api.search_places(location, radius, type)
-        
-        # Read and return the mock location response
         try:
-            with open('api-mock/location-response.json', 'r') as f:
-                return json.load(f)
+            # Convert radius from string to float then to integer
+            radius = int(float(radius))
+            
+            # Call appropriate API based on type
+            if type.lower() in ['eat', 'restaurant']:
+                result = await here_api.search_meal_places((lat, lon), radius)
+            elif type.lower() in ['rest', 'rest area']:
+                result = await here_api.search_rest_areas((lat, lon), radius)
+            elif type.lower() in ['stay', 'hotel']:
+                result = await here_api.search_hotels((lat, lon), radius)
+            else:
+                print(f"Unknown type: {type}, defaulting to meal places")
+                result = await here_api.search_meal_places((lat, lon), radius)
+            
+            return result
         except Exception as e:
-            print(f"Error reading location-response.json: {e}")
+            print(f"Error calling HERE API: {e}")
             return {"items": []}
 
     async def calculate_route_fn(self, start: Tuple[float, float], end: Tuple[float, float], waypoints: List[Tuple[float, float]], depart_at: str = None) -> Dict[str, Any]:
-        """Mock function to simulate calculate_route API call"""
-        print(f"\n=== Mock calculate_route_fn called ===")
+        """Calculate route using TomTom API"""
+        print(f"\n=== Calculate route called ===")
         print(f"Start location: {start}")
         print(f"End location: {end}")
         print(f"Waypoints: {waypoints}")
         print(f"Departure time: {depart_at}")
-        print("=== End mock calculate_route_fn ===\n")
         
-        # Real API call would be:
-        # result = await tomtom_api.calculate_route(start, end, waypoints, depart_at)
-        
-        # Read and return the mock route response
         try:
-            with open('api-mock/route-response.json', 'r') as f:
-                return json.load(f)
+            # Call TomTom API
+            result = tomtom_api.calculate_route(start, end, waypoints, depart_at)
+            return result
         except Exception as e:
-            print(f"Error reading route-response.json: {e}")
+            print(f"Error calculating route: {e}")
             return {"routes": []}
 
     async def async_chat(self, message: Dict[str, str], history, nesting_level: int = 0) -> str:
@@ -200,9 +213,9 @@ class TripPlannerAgent(Workflow):
             ctx = Context(self)
             
             # Get existing chat state from session
-            chat_state = StateManager.get_chat_state()
-            if chat_state:
-                await ctx.set("state", chat_state)
+            # chat_state = StateManager.get_chat_state()
+            # if chat_state:
+            #     await ctx.set("state", chat_state)
             
             # Run workflow with streaming
             handler = self.run(
@@ -217,8 +230,8 @@ class TripPlannerAgent(Workflow):
                     print("Agent output: ", event.response)
             
             # Get final response and update chat state
-            final_state = await ctx.get("state", {})
-            StateManager.update_chat_state(final_state)
+            # final_state = await ctx.get("state", {})
+            # StateManager.update_chat_state(final_state)
             
             return str(await handler)
                 
@@ -260,7 +273,8 @@ class TripPlannerAgent(Workflow):
         modelMsg = ""
 
         # Get the current state from context or initialize empty
-        previous_state = await ctx.get("state", {})
+        # previous_state = await ctx.get("state", {})
+        previous_state = StateManager.get_chat_state()
         
         # Get conversation history from app state
         app_state = StateManager.get_app_state()
@@ -269,23 +283,33 @@ class TripPlannerAgent(Workflow):
         conversation_history = "\n".join(conversation_log[-CONVERSATION_HISTORY_LIMIT:]) if conversation_log else ""
         
         # Format the prompt with current state and conversation history
+        print(f"Start Previous state: {previous_state}")
+        print(f"End of previous state")
         prompt = PROMPT_ONE_SHOT.strip().replace(
             "{{state}}", json.dumps(previous_state)
         ).replace(
             "{{conversation_history}}", conversation_history
         ) + "\n\nCurrent User Message: " + str(message)
         
-        # Execute the prompt
-        result = self.llm.complete(prompt)
+       
         
         # Parse the JSON response
         try:
-            print(f"Result: {result}")
+             # Execute the prompt
+            # print(f"Prompt: {prompt}")
+            result = self.llm.complete(prompt)
+            
             parsed_result = self.extract_json_from_text(str(result))
+            
+            # Check if response is nested in state
+            if parsed_result and isinstance(parsed_result.get('state'), dict) and 'response' in parsed_result['state']:
+                parsed_result = parsed_result['state']
+            # print(f"Result: {parsed_result}")
             model_response = ''
             if parsed_result:
                 # Store the new state in context
-                await ctx.set("state", parsed_result)
+                # await ctx.set("state", parsed_result)
+                StateManager.update_chat_state(parsed_result)
                 model_response = parsed_result['response']
                 modelMsg = f"<start_of_turn_user>model\n{str(model_response)}</end_of_turn>"
                 self.log_conversation(userMsg, modelMsg)
@@ -308,6 +332,8 @@ class TripPlannerAgent(Workflow):
                 
         except Exception as e:
             print(f"Error processing response: {e}")
+            print("Full stack trace:")
+            print(traceback.format_exc())
             # Set model message for error case
             modelMsg = f"<start_of_turn_user>model\nError: {str(e)}</end_of_turn>"
             self.log_conversation(userMsg, modelMsg)
